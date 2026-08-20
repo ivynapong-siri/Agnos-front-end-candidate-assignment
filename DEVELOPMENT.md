@@ -201,6 +201,46 @@ sections. Movement is limited to a breathing dot on live indicators, a 1.4 s fla
 changed fields, and a short rise on entry — and `prefers-reduced-motion` switches all
 of it off, because none of it carries meaning.
 
+### The opening sequence
+
+The landing page assembles rather than arriving. Nine elements enter on a stagger over
+1.55 s — header, eyebrow, heading, body, artwork, the two cards, the background shapes,
+the support button — each on the same `cubic-bezier(0.22, 1, 0.36, 1)`, which decelerates
+hard and never overshoots. Only `opacity` and `transform` move, so every step is
+composited and nothing reflows.
+
+Three details are worth recording, because each was a decision rather than a default:
+
+**The keyframe declares only `from`.** The implicit `to` is whatever the element already
+computes to, so nothing is left filled once the animation ends. That matters because the
+buttons and cards lift on hover via `transform`, and a `forwards` fill would have pinned
+them to `transform: none` permanently — the entrance would have silently killed every
+hover in the app. `backwards` is still needed to cover the delay, or each element would
+flash into place and then animate in from nowhere.
+
+**The schedule lives in one CSS block, not in nine components.** Each element carries a
+role class (`.enter-heading`, `.enter-card-a`) that sets nothing but three custom
+properties. The rhythm can be read and retuned as a table instead of being reassembled
+from the markup.
+
+**Ambient motion and parallax use different properties on purpose.** The artwork breathes
+on `transform`, the pointer parallax rides the independent `translate` property, and 3%
+of overscan sits on the independent `scale`. All three compose instead of overwriting
+each other, which is what a single `transform` would have forced. The parallax is 8px at
+the corners, transitions over 1 s, and never attaches at all unless the device reports
+`(hover: hover) and (pointer: fine)` — a finger has no hover position to track.
+
+Two layers named in the motion spec — the floating UI cards and the blue shapes around
+the folder — are pixels inside `hero-folder.jpg`, not elements, so they cannot be
+animated apart from it. The folder's breathing carries them; the two blurred background
+circles take the "floating shapes" part, drifting 6px on 5 s and 6.5 s so they never
+sync up.
+
+On phones the travel shortens to 60% and the whole sequence quickens to 85%, set as
+multipliers on `:root` so elements with their own animation lists still inherit them.
+`prefers-reduced-motion` removes the lot — including `animation-delay`, without which a
+`backwards` fill would hold elements invisible for their full delay and then snap them in.
+
 ### Responsive behaviour
 
 **Patient form.** Single column on mobile, always — the brief's IxDF reference is

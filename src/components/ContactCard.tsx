@@ -119,7 +119,7 @@ export function ContactCard({ dict, channels }: { dict: Dictionary; channels?: C
       <GlassButton
         type="button"
         popoverTarget={PANEL_ID}
-        className="contact-trigger fixed bottom-4 right-4 z-30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand sm:bottom-6 sm:right-6"
+        className="contact-trigger enter enter-support fixed bottom-4 right-4 z-30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand sm:bottom-6 sm:right-6"
       >
         <QuestionIcon />
         <span className="text-sm">{dict.contact.open}</span>

@@ -81,11 +81,14 @@ export default async function LocaleLayout({
         {/* Soft brand wash behind everything. Blurred CSS circles rather than
             SVG blobs: same look, nothing to maintain. */}
         <div aria-hidden="true" className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
-          <div className="absolute -left-40 -top-40 h-[30rem] w-[30rem] rounded-full bg-brand-wash opacity-80 blur-3xl" />
-          <div className="absolute -bottom-48 -right-32 h-[26rem] w-[26rem] rounded-full bg-brand-tint/25 blur-3xl" />
+          <div className="enter-shape absolute -left-40 -top-40 h-[30rem] w-[30rem] rounded-full bg-brand-wash opacity-80 blur-3xl" />
+          <div
+            className="enter-shape absolute -bottom-48 -right-32 h-[26rem] w-[26rem] rounded-full bg-brand-tint/25 blur-3xl"
+            style={{ ["--drift-duration" as string]: "6.5s" }}
+          />
         </div>
 
-        <header className="fixed inset-x-0 top-0 z-50 bg-white/35 backdrop-blur-2xl backdrop-saturate-150">
+        <header className="enter enter-header fixed inset-x-0 top-0 z-50 bg-white/35 backdrop-blur-2xl backdrop-saturate-150">
           {/* Out of the flow, so a full-screen background runs underneath it.
               No band — just a veil and a blur. 35% is the floor at which the
               navy labels still clear 4.5:1 over the worst thing that can pass

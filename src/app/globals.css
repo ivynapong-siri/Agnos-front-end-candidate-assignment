@@ -426,6 +426,142 @@
   transform: none;
 }
 
+/* ------------------------------------------------------------------ *
+ * Opening sequence
+ *
+ * The page assembles rather than arriving: each element enters a beat
+ * after the one before it, so the eye is led down the hierarchy instead
+ * of meeting all of it at once.
+ *
+ * The keyframe declares only `from`. The implicit `to` is whatever the
+ * element already computes to, which means nothing is left filled
+ * afterwards and the hover transforms still work once the entrance is
+ * over — .glass-btn lifts 2px, a card lifts 4, and a forwards fill would
+ * have pinned both to `transform: none` for good. `backwards` covers the
+ * delay, without which every element would flash into place and then
+ * animate in from nowhere.
+ *
+ * Opacity and transform only, so each step is composited and nothing
+ * reflows.
+ * ------------------------------------------------------------------ */
+
+@keyframes enter {
+  from {
+    opacity: 0;
+    transform: translateY(calc(var(--enter-y, 18px) * var(--enter-distance, 1)))
+      scale(var(--enter-scale, 1));
+  }
+}
+
+.enter {
+  animation: enter calc(var(--enter-duration, 700ms) * var(--enter-speed, 1))
+    cubic-bezier(0.22, 1, 0.36, 1) var(--enter-delay, 0ms) backwards;
+}
+
+/* The running order, in one place, so the rhythm reads as a schedule
+   rather than having to be reassembled from six components. */
+.enter-header {
+  --enter-delay: 0ms;
+  --enter-duration: 600ms;
+  --enter-y: -10px;
+}
+
+.enter-eyebrow {
+  --enter-delay: 120ms;
+  --enter-duration: 550ms;
+  --enter-y: 12px;
+}
+
+.enter-heading {
+  --enter-delay: 200ms;
+  --enter-duration: 700ms;
+  --enter-y: 20px;
+}
+
+.enter-body {
+  --enter-delay: 320ms;
+  --enter-duration: 650ms;
+  --enter-y: 16px;
+}
+
+.enter-card-a {
+  --enter-delay: 430ms;
+  --enter-duration: 750ms;
+  --enter-y: 24px;
+  --enter-scale: 0.98;
+}
+
+.enter-card-b {
+  --enter-delay: 540ms;
+  --enter-duration: 750ms;
+  --enter-y: 28px;
+  --enter-scale: 0.98;
+}
+
+.enter-support {
+  --enter-delay: 950ms;
+  --enter-duration: 600ms;
+  --enter-y: 10px;
+}
+
+/* A phone is held closer and has less of it: the same travel reads as a
+   longer journey there, so it is shortened and slightly quickened. Set on
+   the root rather than on .enter, because the two elements below carry
+   their own animation lists and still need to inherit the multipliers. */
+@media (max-width: 639px) {
+  :root {
+    --enter-distance: 0.6;
+    --enter-speed: 0.85;
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * Ambient motion
+ *
+ * Begins at 1.4s, once the entrance has finished, so the two never argue
+ * over the same property. Each of these carries its entrance and its loop
+ * in a single `animation` list: as two rules the second shorthand would
+ * simply have replaced the first.
+ * ------------------------------------------------------------------ */
+
+@keyframes hero-breathe {
+  to {
+    transform: translateY(-3px) scale(1.005);
+  }
+}
+
+@keyframes drift {
+  to {
+    transform: translateY(-6px);
+  }
+}
+
+.hero-art {
+  --enter-y: 25px;
+  --enter-scale: 0.96;
+  animation:
+    enter calc(1100ms * var(--enter-speed, 1)) cubic-bezier(0.22, 1, 0.36, 1) 260ms backwards,
+    hero-breathe 7s cubic-bezier(0.45, 0, 0.55, 1) 1400ms infinite alternate;
+  /* Parallax rides `translate`, not `transform`, so it composes with the
+     breathing above instead of overwriting it. PointerParallax sets the two
+     variables; on a touch screen they are simply never defined.
+
+     `scale` is the independent property, again to stay out of transform's
+     way. It is overscan: the artwork is object-cover on inset-0, so without
+     3% of slack an 8px parallax shift would drag a bare edge into view. */
+  scale: 1.03;
+  translate: var(--parallax-x, 0) var(--parallax-y, 0);
+  transition: translate 1000ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.enter-shape {
+  --enter-y: 0px;
+  --enter-scale: 0.7;
+  animation:
+    enter calc(900ms * var(--enter-speed, 1)) cubic-bezier(0.22, 1, 0.36, 1) 780ms backwards,
+    drift var(--drift-duration, 5s) cubic-bezier(0.45, 0, 0.55, 1) 1400ms infinite alternate;
+}
+
 /* Decoration is decoration: nothing here carries meaning, so switching it off
    costs the user nothing. */
 @media (prefers-reduced-motion: reduce) {
@@ -433,6 +569,7 @@
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
+    animation-delay: 0s !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;

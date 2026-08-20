@@ -1,5 +1,6 @@
 import Image from 'next/image'
 import { ArtPatient, ArtStaff } from '@/components/Art'
+import { PointerParallax } from '@/components/PointerParallax'
 import { ChoiceCard } from '@/components/ChoiceCard'
 import { DEFAULT_LOCALE, getDictionary, isLocale } from '@/i18n'
 
@@ -23,6 +24,8 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
 
   return (
     <main className="-mt-16 sm:-mt-20">
+      <PointerParallax />
+
       <section className="relative isolate flex min-h-svh flex-col overflow-hidden pt-16 sm:pt-20">
         {/*
           next/image rather than a CSS background: identical result
@@ -40,14 +43,16 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
           priority
           quality={85}
           sizes="(min-width: 1024px) 100vw, 0px"
-          className="pointer-events-none -z-10 hidden select-none object-cover object-right lg:block"
+          className="hero-art pointer-events-none -z-10 hidden select-none object-cover object-right lg:block"
         />
 
         <div className="mx-auto grid w-full max-w-7xl flex-1 content-center gap-x-10 gap-y-8 px-4 py-10 sm:px-6 md:grid-cols-2">
           <div className="max-w-md md:col-span-2 md:max-w-2xl lg:col-span-1 lg:col-start-1 lg:row-start-1 lg:max-w-md">
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-brand">{dict.landing.eyebrow}</p>
-            <h1 className="mt-3 text-3xl font-bold text-navy-900 sm:text-4xl">{dict.landing.heading}</h1>
-            <p className="mt-4 text-base text-ink/80">{dict.landing.body}</p>
+            <p className="enter enter-eyebrow text-xs font-bold uppercase tracking-[0.18em] text-brand">
+              {dict.landing.eyebrow}
+            </p>
+            <h1 className="enter enter-heading mt-3 text-3xl font-bold text-navy-900 sm:text-4xl">{dict.landing.heading}</h1>
+            <p className="enter enter-body mt-4 text-base text-ink/80">{dict.landing.body}</p>
           </div>
 
           <ChoiceCard
@@ -56,7 +61,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
             title={dict.landing.patientTitle}
             blurb={dict.landing.patientBlurb}
             cta={dict.landing.patientCta}
-            className="md:col-start-1 md:row-start-2 lg:col-start-1 lg:row-start-2"
+            className="enter enter-card-a md:col-start-1 md:row-start-2 lg:col-start-1 lg:row-start-2"
           />
 
           <ChoiceCard
@@ -65,7 +70,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
             title={dict.landing.staffTitle}
             blurb={dict.landing.staffBlurb}
             cta={dict.landing.staffCta}
-            className="md:col-start-2 md:row-start-2 lg:col-start-2 lg:row-start-2 lg:max-w-sm"
+            className="enter enter-card-b md:col-start-2 md:row-start-2 lg:col-start-2 lg:row-start-2 lg:max-w-sm"
           />
         </div>
 
