@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import type { Dictionary, Locale } from '@/i18n'
-import { anchorPopover } from '@/lib/anchor'
+import { anchorPopover, keepAnchored } from '@/lib/anchor'
 import {
   formatLongDate,
   fromIsoDate,
@@ -58,6 +58,7 @@ export function DateField({
 
   const [open, setOpen] = useState(false)
   const [mode, setMode] = useState<Mode>('days')
+  const untrack = useRef<(() => void) | null>(null)
 
   // Captured once per mount. Reading a ref during render is not allowed, and
   // it must not change between renders or the disabled future dates would shift.
@@ -75,9 +76,15 @@ export function DateField({
       const isOpen = (event as ToggleEvent).newState === 'open'
       setOpen(isOpen)
       if (!isOpen) setMode('days')
+      // Re-anchor while open so scrolling does not leave the calendar behind.
+      untrack.current?.()
+      untrack.current = isOpen && trigger.current ? keepAnchored(element, trigger.current, 304) : null
     }
     element.addEventListener('toggle', onToggle)
-    return () => element.removeEventListener('toggle', onToggle)
+    return () => {
+      untrack.current?.()
+      element.removeEventListener('toggle', onToggle)
+    }
   }, [])
 
   const show = () => {
@@ -129,7 +136,7 @@ export function DateField({
         <span className="min-w-0 flex-1 truncate">
           {value ? formatLongDate(value, locale) : dict.picker.chooseDate}
         </span>
-        <svg viewBox="0 0 24 24" className="h-4.5 w-4.5 shrink-0" fill="none" aria-hidden="true">
+        <svg viewBox="0 0 24 24" className="h-5 w-5 shrink-0" fill="none" aria-hidden="true">
           <rect x="3" y="5" width="18" height="16" rx="3" strokeWidth="1.8" className="stroke-brand" />
           <path d="M3 10h18M8 3v4M16 3v4" strokeWidth="1.8" strokeLinecap="round" className="stroke-brand" />
         </svg>

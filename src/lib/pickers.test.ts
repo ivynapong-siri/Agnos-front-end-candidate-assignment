@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { formatLongDate, fromIsoDate, monthGrid, monthNames, toIsoDate, weekdayNames } from './calendar'
+import { isOutOfView } from './anchor'
 import { COUNTRIES, composePhone, flagFor, parsePhone } from './phone'
 
 /**
@@ -130,4 +131,19 @@ test('every country has a distinct code and a renderable flag', () => {
     // Two regional-indicator code points, so it renders as a flag not letters.
     assert.equal([...flagFor(country.iso2)].length, 2, `${country.iso2} flag`)
   }
+})
+
+/* ------------------------------------------------------------------ *
+ * Anchoring
+ * ------------------------------------------------------------------ */
+
+test('a trigger is only out of view once it has fully left the viewport', () => {
+  const H = 800
+  // Fully visible, and partially visible at either edge, all keep the panel open.
+  assert.equal(isOutOfView(100, 148, H), false)
+  assert.equal(isOutOfView(-20, 28, H), false, 'half off the top still counts as visible')
+  assert.equal(isOutOfView(780, 828, H), false, 'half off the bottom too')
+  // Fully gone: the panel would float beside nothing.
+  assert.equal(isOutOfView(-60, 0, H), true)
+  assert.equal(isOutOfView(800, 848, H), true)
 })

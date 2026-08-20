@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { fill } from '@/i18n'
-import { anchorPopover } from '@/lib/anchor'
+import { anchorPopover, keepAnchored } from '@/lib/anchor'
 
 /**
  * The dropdown every select-shaped control in the app uses: gender, language,
@@ -77,6 +77,7 @@ export function Listbox({
 
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
+  const untrack = useRef<(() => void) | null>(null)
   const [active, setActive] = useState(0)
 
   const filtered = useMemo(() => {
@@ -95,9 +96,18 @@ export function Listbox({
   useEffect(() => {
     const element = panel.current
     if (!element) return
-    const onToggle = (event: Event) => setOpen((event as ToggleEvent).newState === 'open')
+    const onToggle = (event: Event) => {
+      const isOpen = (event as ToggleEvent).newState === 'open'
+      setOpen(isOpen)
+      // Re-anchor while open so scrolling does not leave the panel behind.
+      untrack.current?.()
+      untrack.current = isOpen && trigger.current ? keepAnchored(element, trigger.current) : null
+    }
     element.addEventListener('toggle', onToggle)
-    return () => element.removeEventListener('toggle', onToggle)
+    return () => {
+      untrack.current?.()
+      element.removeEventListener('toggle', onToggle)
+    }
   }, [])
 
   useEffect(() => {
