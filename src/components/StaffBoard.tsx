@@ -159,7 +159,7 @@ export function StaffBoard({ dict, locale }: { dict: Dictionary; locale: Locale 
               }`}
             >
               <div className="min-h-0 overflow-hidden pb-5">
-                <SessionCard session={session} now={now} dict={dict} />
+                <SessionCard session={session} now={now} dict={dict} locale={locale} />
               </div>
             </div>
           ))}

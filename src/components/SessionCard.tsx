@@ -1,6 +1,6 @@
 'use client'
 
-import { fill, type Dictionary } from '@/i18n'
+import { fill, type Dictionary, type Locale } from '@/i18n'
 import { FIELDS, displayValue } from '@/lib/fields'
 import type { PatientForm } from '@/lib/schema'
 import { deriveStatus, type StaffSession } from '@/lib/realtime'
@@ -27,10 +27,12 @@ export function SessionCard({
   session,
   now,
   dict,
+  locale,
 }: {
   session: StaffSession
   now: number
   dict: Dictionary
+  locale: Locale
 }) {
   // No timer and no local state: the diff arrives with the update, and the
   // dashboard's one-second tick is what makes the highlight expire.
@@ -108,7 +110,7 @@ export function SessionCard({
                   {dict.form.fields[field.name].label}
                 </dt>
                 <dd className={`min-w-0 break-words text-sm ${raw ? 'text-ink' : 'text-muted'}`}>
-                  {raw ? displayValue(field, raw, dict) : field.required ? dict.staff.notAnswered : '—'}
+                  {raw ? displayValue(field, raw, dict, locale) : field.required ? dict.staff.notAnswered : '—'}
                 </dd>
               </div>
             )

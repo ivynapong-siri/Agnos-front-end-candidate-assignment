@@ -6,6 +6,7 @@ import th from '../i18n/th'
 import { clampLeft, isOutOfView } from './anchor'
 import { CENTRE, ORBIT, orbitFrames, radiusAt, restingPosition } from './orbit'
 import { COUNTRIES, composePhone, flagFor, parsePhone } from './phone'
+import { FIELDS, displayValue } from './fields'
 
 /**
  * The custom date and phone controls replaced native ones, which means their
@@ -152,6 +153,39 @@ test('a trigger is only out of view once it has fully left the viewport', () => 
   // Fully gone: the panel would float beside nothing.
   assert.equal(isOutOfView(-60, 0, H), true)
   assert.equal(isOutOfView(800, 848, H), true)
+})
+
+test('a date reads as a date on the surfaces a person looks at, and as ISO in the CSV', () => {
+  // Caught end to end: the receipt and the staff card were both printing
+  // `1990-03-14` while the field the patient had just filled in said
+  // "14 มีนาคม 1990". One value, three surfaces, two spellings.
+  const dob = FIELDS.find((field) => field.name === 'dateOfBirth')
+  assert.ok(dob, 'dateOfBirth is in the manifest')
+
+  // With a locale: human-facing. Asserted by content, not by exact string —
+  // word order and punctuation come from the platform's ICU data, and pinning
+  // them is how the Intl.DisplayNames hydration bug got in.
+  const english = displayValue(dob, '1990-03-14', en, 'en')
+  assert.ok(english.includes('March'), `expected a month name, got ${english}`)
+  assert.ok(english.includes('14'), `expected the day, got ${english}`)
+  assert.ok(english.includes('1990'), `expected the year, got ${english}`)
+  assert.ok(english !== '1990-03-14', 'must not fall through as raw ISO')
+
+  // Thai stays Gregorian rather than jumping to the Buddhist era.
+  const thai = displayValue(dob, '1990-03-14', th, 'th')
+  assert.ok(thai.includes('1990'), `Thai keeps the Gregorian year, got ${thai}`)
+  assert.ok(!thai.includes('2533'), `Thai must not switch to the Buddhist era, got ${thai}`)
+
+  // Without a locale: untouched, which is what the spreadsheet column wants.
+  assert.equal(displayValue(dob, '1990-03-14', en), '1990-03-14')
+
+  // An unanswered date stays empty rather than becoming "Invalid Date".
+  assert.equal(displayValue(dob, '', en, 'en'), '')
+
+  // Non-date fields are unaffected by the new parameter.
+  const gender = FIELDS.find((field) => field.name === 'gender')
+  assert.ok(gender, 'gender is in the manifest')
+  assert.equal(displayValue(gender, 'male', en, 'en'), displayValue(gender, 'male', en))
 })
 
 test('a panel wider than its trigger is pulled back inside the viewport', () => {

@@ -182,11 +182,13 @@ function ThankYou({
   values,
   reference,
   dict,
+  locale,
   onStartAnother,
 }: {
   values: PatientForm
   reference: string
   dict: Dictionary
+  locale: Locale
   onStartAnother: () => void
 }) {
   const answered = FIELDS.filter((field) => values[field.name].trim() !== '')
@@ -209,7 +211,7 @@ function ThankYou({
           <div key={field.name} className="flex gap-4 py-2.5">
             <dt className="w-2/5 shrink-0 text-xs font-semibold text-muted">{dict.form.fields[field.name].label}</dt>
             <dd className="min-w-0 break-words text-sm text-ink">
-              {displayValue(field, values[field.name], dict)}
+              {displayValue(field, values[field.name], dict, locale)}
             </dd>
           </div>
         ))}
@@ -282,6 +284,7 @@ export function IntakeForm({ dict, locale }: { dict: Dictionary; locale: Locale 
         values={receipt}
         reference={sessionId.slice(0, 8).toUpperCase()}
         dict={dict}
+        locale={locale}
         onStartAnother={startAnother}
       />
     )

@@ -1,4 +1,5 @@
-import type { Dictionary } from '@/i18n'
+import type { Dictionary, Locale } from '@/i18n'
+import { formatLongDate } from './calendar'
 import {
   ADDRESS_MAX_LENGTH,
   GENDERS,
@@ -93,8 +94,24 @@ export function countFilled(values: Partial<PatientForm>): number {
  * Canonical stored values are English; show the reader their own language.
  * Nationality is free text, so an unmatched value is simply what was typed.
  */
-export function displayValue(field: FieldDef, value: string, dict: Dictionary): string {
-  if (!field.optionsKey || value === '') return value
+export function displayValue(
+  field: FieldDef,
+  value: string,
+  dict: Dictionary,
+  locale?: Locale,
+): string {
+  if (value === '') return value
+  // A date is stored as `1990-03-14` and was being shown that way on the
+  // receipt and the staff card, while the field the patient filled in read
+  // "14 มีนาคม 1990". Same value, three surfaces, two spellings.
+  //
+  // The locale is optional rather than required because the CSV deliberately
+  // wants the ISO form: see the note on stamp() in export.ts — a localised
+  // Thai date would switch the spreadsheet to the Buddhist era mid-file, and
+  // ISO is what sorts correctly in a spreadsheet anyway. Passing a locale is
+  // therefore the explicit request for a human-facing date.
+  if (field.type === 'date') return locale ? formatLongDate(value, locale) : value
+  if (!field.optionsKey) return value
   const labels: Record<string, string> = dict.form.options[field.optionsKey]
   return labels[value] ?? value
 }
