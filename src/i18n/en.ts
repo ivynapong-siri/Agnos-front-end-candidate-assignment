@@ -236,8 +236,8 @@ const en = {
   },
 
   theme: {
-    label: 'High contrast',
-    hint: 'Stronger colours, and status hues that stay distinct with colour blindness',
+    label: 'Colour-blind mode',
+    hint: 'Raises contrast, and changes the status colours so they stay distinct with red–green colour blindness',
   },
 
   picker: {

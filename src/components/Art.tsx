@@ -11,56 +11,12 @@ import type { SectionId } from '@/lib/fields'
  */
 
 /** The logo's rounded-diamond mark, at any size and position. */
-function Mark({ cx, cy, size, className }: { cx: number; cy: number; size: number; className: string }) {
+export function Mark({ cx, cy, size, className }: { cx: number; cy: number; size: number; className: string }) {
   const half = size / 2
   return (
     <g transform={`translate(${cx} ${cy}) rotate(45)`}>
       <rect x={-half} y={-half} width={size} height={size} rx={size * 0.28} className={className} />
     </g>
-  )
-}
-
-/** Landing hero: a patient form on the left, the staff dashboard on the right, live in between. */
-export function ArtSync({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 360 200" fill="none" className={className} aria-hidden="true">
-      <circle cx="74" cy="62" r="58" className="fill-brand-wash" opacity="0.75" />
-      <circle cx="288" cy="142" r="64" className="fill-brand-wash" opacity="0.55" />
-
-      <Mark cx={158} cy={40} size={22} className="fill-brand-tint" />
-      <Mark cx={172} cy={40} size={22} className="fill-brand" />
-
-      {/* patient device */}
-      <rect x="34" y="30" width="96" height="140" rx="14" className="fill-white stroke-brand-wash" strokeWidth="2" />
-      <rect x="50" y="52" width="64" height="7" rx="3.5" className="fill-brand-wash" />
-      <rect x="50" y="70" width="44" height="7" rx="3.5" className="fill-brand-wash" />
-      <rect x="50" y="88" width="56" height="7" rx="3.5" className="fill-brand-wash" />
-      <rect x="50" y="104" width="64" height="20" rx="7" className="fill-brand-wash stroke-brand" strokeWidth="1.5" />
-      <rect x="57" y="109" width="2" height="10" rx="1" className="animate-breathe fill-brand" />
-      <rect x="50" y="140" width="64" height="16" rx="8" className="fill-brand" />
-
-      {/* the live link */}
-      <path d="M134 100h58" strokeDasharray="5 6" strokeWidth="2" strokeLinecap="round" className="stroke-brand-tint" />
-      {[148, 164, 180].map((x, i) => (
-        <circle
-          key={x}
-          cx={x}
-          cy="100"
-          r="3.5"
-          className="animate-breathe fill-brand"
-          style={{ animationDelay: `${i * 0.28}s` }}
-        />
-      ))}
-
-      {/* staff dashboard */}
-      <rect x="196" y="48" width="132" height="104" rx="14" className="fill-white stroke-brand-wash" strokeWidth="2" />
-      <rect x="210" y="62" width="46" height="7" rx="3.5" className="fill-navy-900" opacity="0.75" />
-      <circle cx="314" cy="65" r="4" className="animate-breathe fill-state-ok" />
-      <rect x="210" y="82" width="104" height="12" rx="6" className="fill-brand-wash" />
-      <rect x="210" y="82" width="4" height="12" rx="2" className="fill-brand" />
-      <rect x="210" y="102" width="88" height="12" rx="6" className="fill-brand-wash" />
-      <rect x="210" y="122" width="96" height="12" rx="6" className="fill-brand-wash" />
-    </svg>
   )
 }
 

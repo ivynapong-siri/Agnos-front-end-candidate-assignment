@@ -60,12 +60,14 @@ export function ThemeToggle({ dict }: { dict: Dictionary }) {
       onClick={toggle}
       aria-pressed={high}
       title={dict.theme.hint}
-      className={`inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
+      className={`inline-flex min-h-11 shrink-0 items-center gap-2 rounded-full px-3.5 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
         high ? 'bg-navy-900 text-white' : 'bg-white text-brand ring-1 ring-line'
       }`}
     >
       <ContrastIcon />
-      <span className="sr-only">{dict.theme.label}</span>
+      {/* Visible, not sr-only: an icon alone says nothing, and a title attribute
+          never appears on a touch device at all. */}
+      <span>{dict.theme.label}</span>
     </button>
   )
 }

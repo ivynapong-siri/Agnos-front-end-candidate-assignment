@@ -1,5 +1,6 @@
 import Link from 'next/link'
-import { ArtPatient, ArtStaff, ArtSync } from '@/components/Art'
+import { ArtPatient, ArtStaff } from '@/components/Art'
+import { ArtSync } from '@/components/ArtSync'
 import { DEFAULT_LOCALE, getDictionary, isLocale } from '@/i18n'
 
 export default async function Home({ params }: { params: Promise<{ locale: string }> }) {

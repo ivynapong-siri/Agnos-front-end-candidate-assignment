@@ -94,6 +94,14 @@
   }
 }
 
+/* Tailwind's animate-ping assumes a CSS box. An SVG element transforms about
+   the viewBox origin unless told otherwise, so the ping would fly off toward
+   0,0 instead of expanding around the dot. */
+.svg-ping {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
 /* Dropdown and calendar panels. A popover is positioned against the viewport,
    so placement comes from the --lb-* variables set by anchorPopover(). Below sm
    all of that is ignored and the panel is a bottom sheet, which on a phone gives

@@ -81,7 +81,7 @@ export default async function LocaleLayout({
           <div className="absolute -bottom-48 -right-32 h-[26rem] w-[26rem] rounded-full bg-brand-tint/25 blur-3xl" />
         </div>
 
-        <header className="mx-auto flex w-full max-w-7xl items-center gap-4 px-4 py-5 sm:px-6">
+        <header className="mx-auto flex w-full max-w-7xl flex-wrap items-center gap-3 px-4 py-5 sm:px-6">
           <Link
             href={`/${locale}`}
             aria-label={dict.nav.home}
