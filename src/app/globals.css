@@ -36,6 +36,114 @@
   }
 }
 
+/* Dropdown and calendar panels. A popover is positioned against the viewport,
+   so placement comes from the --lb-* variables set by anchorPopover(). Below sm
+   all of that is ignored and the panel is a bottom sheet, which on a phone gives
+   bigger targets than a floating menu — the reason for dropping the OS picker in
+   the first place. */
+.listbox-panel {
+  position: fixed;
+  margin: 0;
+  inset: auto 0 0 0;
+  display: flex;
+  width: 100%;
+  max-height: 70vh;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 1.5rem 1.5rem 0 0;
+  opacity: 0;
+  transform: translateY(12px);
+  transition:
+    opacity 0.18s ease-out,
+    transform 0.18s ease-out,
+    overlay 0.18s ease-out allow-discrete,
+    display 0.18s ease-out allow-discrete;
+}
+
+.listbox-panel:popover-open {
+  opacity: 1;
+  transform: none;
+}
+
+@starting-style {
+  .listbox-panel:popover-open {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
+@media (min-width: 640px) {
+  .listbox-panel {
+    width: var(--lb-w, 16rem);
+    /* Keep in step with PANEL_MAX_HEIGHT in lib/anchor.ts. */
+    max-height: 18rem;
+    border-radius: 1rem;
+  }
+
+  .listbox-panel[data-placement='below'] {
+    inset: var(--lb-y) auto auto var(--lb-x);
+  }
+
+  .listbox-panel[data-placement='above'] {
+    inset: auto auto var(--lb-b) var(--lb-x);
+  }
+}
+
+/* The contact widget. A popover lives in the top layer and is positioned
+   against the viewport, not its DOM parent, so it is placed here rather than
+   with utility classes. */
+.contact-panel {
+  position: fixed;
+  inset: auto 1rem 5.5rem auto;
+  margin: 0;
+  /* Sized here rather than with an arbitrary utility: calc() inside a Tailwind
+     bracket needs escaped spaces, and getting it wrong fails silently. */
+  width: min(20rem, calc(100vw - 2rem));
+  opacity: 0;
+  transform: translateY(10px) scale(0.98);
+  /* allow-discrete lets display and overlay participate, so the panel can
+     animate out instead of being yanked from the top layer. */
+  transition:
+    opacity 0.24s ease-in-out,
+    transform 0.24s ease-in-out,
+    overlay 0.24s ease-in-out allow-discrete,
+    display 0.24s ease-in-out allow-discrete;
+}
+
+.contact-panel:popover-open {
+  opacity: 1;
+  transform: none;
+}
+
+/* Without a starting style the entry has nothing to animate from. */
+@starting-style {
+  .contact-panel:popover-open {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+}
+
+@media (min-width: 640px) {
+  .contact-panel {
+    inset: auto 1.5rem 6rem auto;
+  }
+}
+
+/* The fan-out from the original snippet: each channel eased in on its own
+   delay, set inline per item. */
+.contact-channel {
+  opacity: 0;
+  transform: translateX(8px);
+  transition:
+    opacity 0.3s ease-in-out,
+    transform 0.3s ease-in-out;
+}
+
+.contact-panel:popover-open .contact-channel {
+  opacity: 1;
+  transform: none;
+}
+
 /* Decoration is decoration: nothing here carries meaning, so switching it off
    costs the user nothing. */
 @media (prefers-reduced-motion: reduce) {

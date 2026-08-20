@@ -326,7 +326,7 @@ export function IntakeForm({ dict, locale }: { dict: Dictionary; locale: Locale 
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-6">
               {section.fields.map((field) => (
                 <div key={field.name} className={SPAN_CLASS[field.span ?? 'full']}>
-                  <Field def={field} dict={dict} />
+                  <Field def={field} dict={dict} locale={locale} />
                 </div>
               ))}
             </div>

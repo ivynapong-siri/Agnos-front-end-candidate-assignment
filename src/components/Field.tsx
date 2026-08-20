@@ -1,30 +1,38 @@
 'use client'
 
-import { useFormContext, useWatch } from 'react-hook-form'
-import type { Dictionary } from '@/i18n'
+import { useController, useFormContext } from 'react-hook-form'
+import type { Dictionary, Locale } from '@/i18n'
 import { OPTION_VALUES, type FieldDef } from '@/lib/fields'
-import type { PatientForm } from '@/lib/schema'
+import { MAX_AGE, type PatientForm } from '@/lib/schema'
+import { DateField } from './DateField'
+import { Listbox } from './Listbox'
+import { PhoneField } from './PhoneField'
 
 /**
- * One component for all seven input shapes. Reading the shape from the field
- * manifest and the copy from the dictionary means adding a field is a data
- * change, and adding a language touches no JSX at all.
+ * One component for every input shape. The shape comes from the field manifest
+ * and the copy from the dictionary, so adding a field is a data change and
+ * adding a language touches no JSX.
+ *
+ * Everything goes through useController rather than register: the custom
+ * controls take a value and a callback rather than a ref, and having one path
+ * instead of two removes the branching that would otherwise sit around every
+ * control. Field is its own component, so a keystroke re-renders only itself.
  *
  * Accessibility contract, since this is the only place it can be enforced:
  *   - every control has a real <label for>, never a placeholder as its label
  *   - aria-invalid + aria-describedby wire the error to the control
  *   - errors are announced via role="alert"
- *   - hit area clears the 44px touch-target floor
+ *   - hit areas clear the 44px touch-target floor
  */
 
-const CONTROL =
+const INPUT =
   'w-full rounded-xl border-2 bg-white px-4 py-3 text-base text-ink transition-colors ' +
   'placeholder:text-muted focus:outline-none focus:shadow-ring'
 
-const CONTROL_STATE = {
-  idle: 'border-brand-wash hover:border-brand-tint focus:border-brand',
-  error: 'border-state-error focus:border-state-error',
-  ok: 'border-state-ok/40 focus:border-brand',
+function borderFor(error: boolean, valid: boolean) {
+  if (error) return 'border-state-error focus:border-state-error'
+  if (valid) return 'border-state-ok/40 focus:border-brand'
+  return 'border-brand-wash hover:border-brand-tint focus:border-brand'
 }
 
 function CheckIcon() {
@@ -50,36 +58,42 @@ function AlertIcon() {
   )
 }
 
-export function Field({ def, dict }: { def: FieldDef; dict: Dictionary }) {
-  const {
-    register,
-    control,
-    formState: { errors, touchedFields },
-  } = useFormContext<PatientForm>()
+export function Field({ def, dict, locale }: { def: FieldDef; dict: Dictionary; locale: Locale }) {
+  const { control } = useFormContext<PatientForm>()
+  const { field, fieldState } = useController({ control, name: def.name })
+  // Pulled out and renamed: react-hooks/refs rejects reading a `.ref` property
+  // during render, even though RHF's is a callback ref. It is what lets RHF
+  // focus the first invalid field on submit, so it is kept, not dropped.
+  const { ref: registerRef, name: fieldName } = field
 
   const copy = dict.form.fields[def.name]
-  const value = useWatch({ control, name: def.name }) ?? ''
-  const error = errors[def.name]?.message as string | undefined
-  const touched = Boolean(touchedFields[def.name])
-  const valid = !error && touched && value.trim() !== ''
+  const value = field.value ?? ''
+  const error = fieldState.error?.message
+  const valid = !error && fieldState.isTouched && value.trim() !== ''
 
   const hintId = copy.hint ? `${def.name}-hint` : undefined
   const errorId = error ? `${def.name}-error` : undefined
   const describedBy = [hintId, errorId].filter(Boolean).join(' ') || undefined
-  const listId = def.type === 'combo' ? `${def.name}-options` : undefined
 
-  const optionValues = def.optionsKey ? OPTION_VALUES[def.optionsKey] : undefined
-  const optionLabels: Record<string, string> | undefined = def.optionsKey
-    ? dict.form.options[def.optionsKey]
-    : undefined
+  // Widened to Record<string, string> once, rather than asserting at the call
+  // site: the union of five option maps has no shared index signature.
+  const optionLabels: Record<string, string> = def.optionsKey ? dict.form.options[def.optionsKey] : {}
+  const optionValues: readonly string[] = def.optionsKey ? OPTION_VALUES[def.optionsKey] : []
+
+  const pickerLabels = {
+    search: dict.picker.search,
+    empty: dict.picker.empty,
+    use: dict.picker.useCustom,
+  }
 
   const shared = {
     id: def.name,
-    'aria-invalid': error ? true : undefined,
-    'aria-describedby': describedBy,
-    'aria-required': def.required || undefined,
-    className: `${CONTROL} ${error ? CONTROL_STATE.error : valid ? CONTROL_STATE.ok : CONTROL_STATE.idle}`,
-    ...register(def.name),
+    value,
+    onChange: field.onChange,
+    onBlur: field.onBlur,
+    invalid: Boolean(error),
+    describedBy,
+    required: def.required,
   }
 
   return (
@@ -95,59 +109,76 @@ export function Field({ def, dict }: { def: FieldDef; dict: Dictionary }) {
       </label>
 
       <div className="relative">
-        {def.type === 'select' ? (
-          <select {...shared} className={`${shared.className} appearance-none pr-11`}>
-            <option value="">{dict.form.choose}</option>
-            {optionValues?.map((option) => (
-              <option key={option} value={option}>
-                {optionLabels?.[option] ?? option}
-              </option>
-            ))}
-          </select>
+        {def.type === 'select' || def.type === 'combo' ? (
+          <Listbox
+            {...shared}
+            options={optionValues.map((option) => ({
+              value: option,
+              label: optionLabels[option] ?? option,
+            }))}
+            placeholder={dict.form.choose}
+            // A combo is free text with suggestions, so an unlisted answer has
+            // to be accepted — nationality cannot be a closed list.
+            searchable={def.type === 'combo'}
+            allowCustom={def.type === 'combo'}
+            labels={pickerLabels}
+          />
+        ) : def.type === 'date' ? (
+          <DateField
+            id={def.name}
+            value={value}
+            onChange={field.onChange}
+            onBlur={field.onBlur}
+            invalid={Boolean(error)}
+            describedBy={describedBy}
+            dict={dict}
+            locale={locale}
+            maxAge={MAX_AGE}
+          />
+        ) : def.type === 'tel' ? (
+          <PhoneField
+            {...shared}
+            placeholder={copy.placeholder || undefined}
+            dict={dict}
+            locale={locale}
+          />
         ) : def.type === 'textarea' ? (
           <textarea
             {...shared}
+            name={fieldName}
+            ref={registerRef}
             rows={3}
             maxLength={def.maxLength}
             placeholder={copy.placeholder || undefined}
             autoComplete={def.autoComplete}
-            className={`${shared.className} resize-y`}
+            aria-invalid={error ? true : undefined}
+            aria-describedby={describedBy}
+            aria-required={def.required || undefined}
+            className={`${INPUT} ${borderFor(Boolean(error), valid)} resize-y`}
           />
         ) : (
-          <input
-            {...shared}
-            type={def.type === 'combo' ? 'text' : def.type}
-            list={listId}
-            inputMode={def.inputMode}
-            maxLength={def.maxLength}
-            placeholder={copy.placeholder || undefined}
-            autoComplete={def.autoComplete}
-            className={`${shared.className} ${valid ? 'pr-11' : ''}`}
-          />
-        )}
-
-        {def.type === 'select' && (
-          <svg
-            viewBox="0 0 16 16"
-            className="pointer-events-none absolute right-4 top-1/2 h-3.5 w-3.5 -translate-y-1/2"
-            fill="none"
-            aria-hidden="true"
-          >
-            <path
-              d="M3.5 6L8 10.5 12.5 6"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="stroke-brand"
+          <>
+            <input
+              {...shared}
+              name={fieldName}
+              ref={registerRef}
+              type={def.type}
+              inputMode={def.inputMode}
+              maxLength={def.maxLength}
+              placeholder={copy.placeholder || undefined}
+              autoComplete={def.autoComplete}
+              aria-invalid={error ? true : undefined}
+              aria-describedby={describedBy}
+              aria-required={def.required || undefined}
+              className={`${INPUT} ${borderFor(Boolean(error), valid)} ${valid ? 'pr-11' : ''}`}
             />
-          </svg>
-        )}
-
-        {/* Positive inline feedback, not just error feedback. */}
-        {valid && def.type !== 'select' && def.type !== 'textarea' && (
-          <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2">
-            <CheckIcon />
-          </span>
+            {/* Positive inline feedback, not just error feedback. */}
+            {valid && (
+              <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2">
+                <CheckIcon />
+              </span>
+            )}
+          </>
         )}
       </div>
 
@@ -159,14 +190,6 @@ export function Field({ def, dict }: { def: FieldDef; dict: Dictionary }) {
         <p id={hintId} className="mt-1.5 text-xs text-muted">
           {copy.hint}
         </p>
-      )}
-
-      {listId && (
-        <datalist id={listId}>
-          {optionValues?.map((option) => (
-            <option key={option} value={optionLabels?.[option] ?? option} />
-          ))}
-        </datalist>
       )}
 
       {error && (

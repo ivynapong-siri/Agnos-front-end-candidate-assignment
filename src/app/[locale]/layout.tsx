@@ -1,7 +1,9 @@
 import type { Metadata, Viewport } from 'next'
 import { Anuphan } from 'next/font/google'
 import Link from 'next/link'
+import { ContactCard } from '@/components/ContactCard'
 import { LanguageToggle } from '@/components/LanguageToggle'
+import { PageTransition } from '@/components/PageTransition'
 import { Logo } from '@/components/Logo'
 import { DEFAULT_LOCALE, LOCALES, getDictionary, isLocale } from '@/i18n'
 import '../globals.css'
@@ -82,7 +84,13 @@ export default async function LocaleLayout({
           </div>
         </header>
 
-        {children}
+        {/* The header sits outside the transition so the logo and the language
+            toggle stay put while the page beneath them crossfades. */}
+        <PageTransition>{children}</PageTransition>
+
+        {/* Bottom-right on every page, so a patient stuck on a field never has
+            to go looking for how to ask. */}
+        <ContactCard dict={dict} />
       </body>
     </html>
   )

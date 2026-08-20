@@ -69,7 +69,7 @@ test('every placeholder a template uses is one a caller fills', () => {
   // Catches a typo like {filed} that would render literally on the page.
   const KNOWN = new Set([
     'total', 'optional', 'filled', 'count', 'name', 'label', 'max', 'min',
-    'idle', 'inactive', 'status', 'n', 'example', 'local',
+    'idle', 'inactive', 'status', 'n', 'example', 'local', 'value',
   ])
   for (const dict of [en, th]) {
     for (const path of paths(dict)) {

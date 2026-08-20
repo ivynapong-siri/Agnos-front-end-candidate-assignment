@@ -235,6 +235,27 @@ const en = {
     back: 'Back to start',
   },
 
+  picker: {
+    search: 'Search',
+    empty: 'Nothing matches that',
+    useCustom: 'Use “{value}”',
+    country: 'Country code',
+    chooseDate: 'Choose a date',
+    year: 'Choose a year',
+    prevMonth: 'Previous month',
+    nextMonth: 'Next month',
+    clear: 'Clear',
+  },
+
+  contact: {
+    open: 'Questions?',
+    title: 'We can help',
+    blurb: 'Front desk, every day 8am to 8pm. Nothing you type here is sent when you contact us.',
+    phone: 'Call the clinic',
+    line: 'Chat on LINE',
+    email: 'Email us',
+  },
+
   time: {
     justNow: 'just now',
     seconds: '{n}s ago',
