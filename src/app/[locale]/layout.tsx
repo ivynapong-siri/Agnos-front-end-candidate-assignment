@@ -81,9 +81,10 @@ export default async function LocaleLayout({
           <div className="absolute -bottom-48 -right-32 h-[26rem] w-[26rem] rounded-full bg-brand-tint/25 blur-3xl" />
         </div>
 
-        <header className="sm:sticky sm:top-0 sm:z-40 sm:border-b sm:border-white/60 sm:bg-paper/85 sm:backdrop-blur-xl">
-          {/* bg-paper/85 is the floor: below it the brand-coloured labels drop
-              under 4.5:1 when the blue submit button scrolls underneath. */}
+        <header className="sm:sticky sm:top-0 sm:z-40 sm:bg-white/35 sm:backdrop-blur-2xl sm:backdrop-saturate-150">
+          {/* No band — just a veil and a blur, so the hero shows through. 35%
+              is the floor at which the navy labels still clear 4.5:1 over the
+              worst thing that can scroll under: the blue submit button. */}
           <div className="mx-auto flex w-full max-w-7xl flex-wrap items-center gap-3 px-4 py-5 sm:h-20 sm:flex-nowrap sm:px-6">
           <Link
             href={`/${locale}`}

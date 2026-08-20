@@ -61,7 +61,7 @@ export function ThemeToggle({ dict }: { dict: Dictionary }) {
       aria-pressed={high}
       title={dict.theme.hint}
       className={`inline-flex min-h-11 shrink-0 items-center gap-2 rounded-full px-3.5 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
-        high ? 'bg-navy-900 text-white' : 'bg-white/50 text-brand ring-1 ring-white/70 backdrop-blur-md'
+        high ? 'bg-navy-900 text-white' : 'bg-white/50 text-navy-900 ring-1 ring-white/70 backdrop-blur-md'
       }`}
     >
       <ContrastIcon />

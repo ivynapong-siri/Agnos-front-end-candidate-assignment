@@ -49,7 +49,7 @@ export function LanguageToggle({ locale, dict }: { locale: Locale; dict: Diction
             )}
             {/* Above the pill, and easing its own colour so the label turns
                 white roughly as the pill arrives under it. */}
-            <span className={`relative transition-colors duration-200 ${active ? 'text-white' : 'text-ink/70'}`}>
+            <span className={`relative transition-colors duration-200 ${active ? 'text-white' : 'text-navy-900'}`}>
               {LOCALE_NAMES[option]}
             </span>
           </Link>
