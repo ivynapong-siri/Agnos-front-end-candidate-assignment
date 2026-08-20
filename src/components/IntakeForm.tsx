@@ -1,0 +1,325 @@
+'use client'
+
+import { useCallback, useEffect, useState } from 'react'
+import { FormProvider, useForm, useFormContext, useWatch } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { ArtDone, SectionIcon } from './Art'
+import { Field } from './Field'
+import { LiveIndicator, SetupNotice } from './LiveIndicator'
+import {
+  EMPTY_FORM,
+  FIELDS,
+  FIELDS_BY_SECTION,
+  REQUIRED_FIELDS,
+  SPAN_CLASS,
+  countFilled,
+} from '@/lib/fields'
+import { patientSchema, type PatientForm } from '@/lib/schema'
+import { realtimeConfigured, usePatientPresence } from '@/lib/realtime'
+
+const TOTAL_REQUIRED = REQUIRED_FIELDS.length
+
+const SESSION_KEY = 'agnos.sessionId'
+
+function readOrCreateSessionId() {
+  const existing = sessionStorage.getItem(SESSION_KEY)
+  if (existing) return existing
+  const fresh = crypto.randomUUID()
+  sessionStorage.setItem(SESSION_KEY, fresh)
+  return fresh
+}
+
+/**
+ * One tab = one patient. sessionStorage rather than localStorage so a second
+ * tab is genuinely a second patient, while a refresh keeps the same identity
+ * and staff does not see a duplicate appear.
+ *
+ * Read in the state initialiser rather than an effect: the id is needed on the
+ * first render, and '' during SSR is safe because nothing renders it until the
+ * patient submits.
+ */
+function useSessionId() {
+  const [id, setId] = useState(() => (typeof window === 'undefined' ? '' : readOrCreateSessionId()))
+
+  const renew = useCallback(() => {
+    const fresh = crypto.randomUUID()
+    sessionStorage.setItem(SESSION_KEY, fresh)
+    setId(fresh)
+  }, [])
+
+  return { id, renew }
+}
+
+/* ------------------------------------------------------------------ */
+
+function ProgressBar({ filled }: { filled: number }) {
+  const percent = Math.round((filled / TOTAL_REQUIRED) * 100)
+  return (
+    <div>
+      <div className="mb-1.5 flex items-baseline justify-between text-xs font-medium">
+        <span className="text-ink/70">
+          {filled} of {TOTAL_REQUIRED} required answers
+        </span>
+        <span className="font-bold text-brand">{percent}%</span>
+      </div>
+      <div
+        role="progressbar"
+        aria-valuenow={percent}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label="Form completion"
+        className="h-2 overflow-hidden rounded-full bg-brand-wash"
+      >
+        <div
+          className="h-full rounded-full bg-brand transition-[width] duration-500 ease-out"
+          style={{ width: `${percent}%` }}
+        />
+      </div>
+    </div>
+  )
+}
+
+/**
+ * The only component subscribed to every field. Keeping the watch here means a
+ * keystroke re-renders this 30-line component instead of the whole form tree,
+ * and it puts the progress bar and the outbound sync on the same subscription.
+ */
+function LiveMirror({
+  sessionId,
+  startedAt,
+  publish,
+}: {
+  sessionId: string
+  startedAt: number
+  publish: (payload: Parameters<ReturnType<typeof usePatientPresence>['publish']>[0]) => void
+}) {
+  const { control } = useFormContext<PatientForm>()
+  const values = useWatch({ control })
+  const filled = countFilled(values)
+
+  useEffect(() => {
+    if (!sessionId) return
+    // Trailing debounce: staff sees a settled value ~250ms after typing stops,
+    // which keeps us at roughly 4 messages/second against a cap of 10.
+    const timer = setTimeout(() => {
+      publish({
+        sessionId,
+        data: values,
+        submitted: false,
+        filled,
+        total: TOTAL_REQUIRED,
+        startedAt,
+      })
+    }, 250)
+    return () => clearTimeout(timer)
+  }, [values, filled, sessionId, startedAt, publish])
+
+  return <ProgressBar filled={filled} />
+}
+
+/** Post-submit error summary. Silent until the patient has actually tried. */
+function ErrorSummary() {
+  const {
+    formState: { errors, submitCount },
+  } = useFormContext<PatientForm>()
+
+  const broken = FIELDS.filter((field) => errors[field.name])
+  if (submitCount === 0 || broken.length === 0) return null
+
+  return (
+    <div role="alert" className="rounded-2xl border border-state-error/30 bg-state-error/5 p-4">
+      <p className="text-sm font-semibold text-state-error">
+        {broken.length === 1 ? '1 answer needs' : `${broken.length} answers need`} another look
+      </p>
+      <ul className="mt-2 flex flex-wrap gap-2">
+        {broken.map((field) => (
+          <li key={field.name}>
+            <button
+              type="button"
+              onClick={() => document.getElementById(field.name)?.focus()}
+              className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-state-error underline decoration-state-error/40 underline-offset-2"
+            >
+              {field.label}
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+/* ------------------------------------------------------------------ */
+
+function ThankYou({
+  values,
+  reference,
+  onStartAnother,
+}: {
+  values: PatientForm
+  reference: string
+  onStartAnother: () => void
+}) {
+  const answered = FIELDS.filter((field) => values[field.name].trim() !== '')
+
+  return (
+    <div className="animate-rise rounded-3xl border border-brand-wash bg-white p-6 text-center shadow-card sm:p-10">
+      <ArtDone className="mx-auto h-28 w-28" />
+      <h1 className="mt-4 text-2xl font-bold text-navy-900 sm:text-3xl">Thank you, {values.firstName}</h1>
+
+      {/* IxDF: say what happens next, do not just say "success". */}
+      <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-ink/80">
+        Your details are now on the front desk screen. A staff member will call your name shortly — you do not need to
+        queue again. If anything is wrong, tell them your reference and they can correct it on the spot.
+      </p>
+      <p className="mt-4 inline-block rounded-full bg-brand-wash px-4 py-1.5 font-mono text-sm font-bold tracking-wider text-brand">
+        {reference}
+      </p>
+
+      <dl className="mx-auto mt-8 max-w-md divide-y divide-brand-wash text-left">
+        {answered.map((field) => (
+          <div key={field.name} className="flex gap-4 py-2.5">
+            <dt className="w-2/5 shrink-0 text-xs font-semibold uppercase tracking-wide text-muted">{field.label}</dt>
+            <dd className="min-w-0 break-words text-sm text-ink">{values[field.name]}</dd>
+          </div>
+        ))}
+      </dl>
+
+      <button
+        type="button"
+        onClick={onStartAnother}
+        className="mt-8 min-h-12 rounded-xl border-2 border-brand-wash px-6 font-semibold text-brand transition-colors hover:border-brand-tint"
+      >
+        Fill in another form
+      </button>
+    </div>
+  )
+}
+
+/* ------------------------------------------------------------------ */
+
+export function IntakeForm() {
+  const { id: sessionId, renew } = useSessionId()
+  // Never rendered, only sent — so generating it during render is safe.
+  const [startedAt, setStartedAt] = useState(() => Date.now())
+  const [receipt, setReceipt] = useState<PatientForm | null>(null)
+  const { publish, connection } = usePatientPresence(sessionId)
+
+  const methods = useForm<PatientForm>({
+    resolver: zodResolver(patientSchema),
+    defaultValues: EMPTY_FORM,
+    // IxDF inline validation: first check on blur, then live once touched, so
+    // nobody is told they are wrong halfway through typing their own name.
+    mode: 'onTouched',
+  })
+
+  const onSubmit = methods.handleSubmit((values) => {
+    // Published here rather than waiting on LiveMirror's debounce, which
+    // unmounts on the next render.
+    publish({
+      sessionId,
+      data: values,
+      submitted: true,
+      filled: TOTAL_REQUIRED,
+      total: TOTAL_REQUIRED,
+      startedAt,
+    })
+    setReceipt(values)
+  })
+
+  const startAnother = () => {
+    methods.reset(EMPTY_FORM)
+    setReceipt(null)
+    setStartedAt(Date.now())
+    renew() // a new patient, not an edit of the last one
+  }
+
+  if (receipt) {
+    return <ThankYou values={receipt} reference={sessionId.slice(0, 8).toUpperCase()} onStartAnother={startAnother} />
+  }
+
+  return (
+    <FormProvider {...methods}>
+      {/* Lives inside the form rather than the page so that submitting replaces
+          it — "before you see the doctor" is wrong copy once they are done. */}
+      <header className="mb-6">
+        <h1 className="text-2xl font-bold text-navy-900 sm:text-3xl">Before you see the doctor</h1>
+        <p className="mt-2 max-w-xl text-sm leading-6 text-ink/75">
+          {/* Counted from the manifest so the promise cannot go stale. */}
+          {FIELDS.length} questions, {FIELDS.length - TOTAL_REQUIRED} of them optional. The front desk sees your answers
+          as you type, so there is nothing to hand over at the end.
+        </p>
+      </header>
+
+      {!realtimeConfigured && <SetupNotice />}
+
+      <form onSubmit={onSubmit} noValidate>
+        {/* Sticky so the patient can always see how much is left, per IxDF's
+            progress-indicator guidance, without a multi-step wizard. */}
+        <div className="sticky top-0 z-20 -mx-4 mb-6 border-b border-brand-wash bg-paper/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6">
+          <div className="flex items-center gap-4">
+            <div className="min-w-0 flex-1">
+              <LiveMirror sessionId={sessionId} startedAt={startedAt} publish={publish} />
+            </div>
+            <LiveIndicator connection={connection} />
+          </div>
+        </div>
+
+        {FIELDS_BY_SECTION.map((section, index) => (
+          <section
+            key={section.id}
+            aria-labelledby={`${section.id}-heading`}
+            className="mb-6 rounded-3xl border border-brand-wash bg-white p-5 shadow-card sm:p-7"
+          >
+            <div className="mb-6 flex gap-4">
+              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-brand-wash">
+                <SectionIcon id={section.id} className="h-5 w-5" />
+              </span>
+              <div>
+                <h2 id={`${section.id}-heading`} className="text-lg font-bold text-navy-900">
+                  <span className="text-brand">{index + 1}.</span> {section.title}
+                </h2>
+                <p className="mt-1 text-sm leading-6 text-muted">{section.blurb}</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-6">
+              {section.fields.map((field) => (
+                <div key={field.name} className={SPAN_CLASS[field.span ?? 'full']}>
+                  <Field def={field} />
+                </div>
+              ))}
+            </div>
+          </section>
+        ))}
+
+        <div className="space-y-4 rounded-3xl border border-brand-wash bg-white p-5 shadow-card sm:p-7">
+          <ErrorSummary />
+
+          {/* IxDF: put the privacy promise where the decision is made. */}
+          <p className="flex gap-3 text-xs leading-5 text-muted">
+            <svg viewBox="0 0 20 20" className="mt-0.5 h-4 w-4 shrink-0" fill="none" aria-hidden="true">
+              <path
+                d="M10 2.5l6 2.2v5.1c0 3.5-2.4 6.7-6 7.7-3.6-1-6-4.2-6-7.7V4.7l6-2.2z"
+                strokeWidth="1.5"
+                className="stroke-brand"
+              />
+              <path d="M7.4 10.2l1.9 1.9 3.5-3.8" strokeWidth="1.5" strokeLinecap="round" className="stroke-brand" />
+            </svg>
+            <span>
+              Sent to the front desk over an encrypted connection and shown only to staff on duty. Nothing is written to
+              a database, and closing this page clears it.
+            </span>
+          </p>
+
+          <button
+            type="submit"
+            disabled={methods.formState.isSubmitting}
+            className="min-h-12 w-full rounded-xl bg-brand px-6 text-base font-bold text-white shadow-card transition-all hover:bg-navy-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:opacity-60 sm:w-auto"
+          >
+            Submit my information
+          </button>
+        </div>
+      </form>
+    </FormProvider>
+  )
+}
