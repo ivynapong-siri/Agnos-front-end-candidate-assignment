@@ -7,7 +7,14 @@ import { SessionCard } from './SessionCard'
 import { STATUS_ORDER, STATUS_STYLE, statusTitle } from './StatusBadge'
 import { fill, plural, type Dictionary, type Locale } from '@/i18n'
 import { buildExportRows, downloadCsv, exportFilename } from '@/lib/export'
-import { deriveStatus, realtimeConfigured, useNow, useStaffSessions, type PatientStatus } from '@/lib/realtime'
+import {
+  EXIT_MS,
+  deriveStatus,
+  realtimeConfigured,
+  useNow,
+  useStaffSessions,
+  type PatientStatus,
+} from '@/lib/realtime'
 
 type Filter = PatientStatus | 'all'
 
@@ -18,7 +25,15 @@ export function StaffBoard({ dict, locale }: { dict: Dictionary; locale: Locale 
   const now = useNow(1000)
   const [filter, setFilter] = useState<Filter>('all')
 
-  const decorated = sessions.map((session) => ({ session, status: deriveStatus(session, now) }))
+  // Bug fix: a session with no name at all is somebody who opened the page and
+  // typed nothing identifying. Staff cannot act on it, so it is not a patient
+  // yet — and an "unnamed" card is pure noise on the board. Filtered here at the
+  // source, so the count, the chips, the cards and the export all agree.
+  const identified = sessions.filter(
+    (session) => `${session.data.firstName ?? ''}${session.data.lastName ?? ''}`.trim() !== '',
+  )
+
+  const decorated = identified.map((session) => ({ session, status: deriveStatus(session, now) }))
   const counts = STATUS_ORDER.map((status) => ({
     status,
     count: decorated.filter((entry) => entry.status === status).length,
@@ -51,9 +66,9 @@ export function StaffBoard({ dict, locale }: { dict: Dictionary; locale: Locale 
           <div className="mr-auto">
             <h1 className="text-xl font-bold text-navy-900 sm:text-2xl">{dict.staff.title}</h1>
             <p className="text-sm text-muted">
-              {sessions.length === 0
+              {identified.length === 0
                 ? dict.staff.none
-                : plural({ one: dict.staff.count_one, other: dict.staff.count_other }, sessions.length)}
+                : plural({ one: dict.staff.count_one, other: dict.staff.count_other }, identified.length)}
             </p>
           </div>
           <LiveIndicator connection={connection} dict={dict} />
@@ -68,6 +83,13 @@ export function StaffBoard({ dict, locale }: { dict: Dictionary; locale: Locale 
           </button>
           <a
             href={`/${locale}/patient`}
+            // target=_blank with rel=noreferrer gives the new tab a clean
+            // sessionStorage, so the remembered room would be lost. Rewriting
+            // the href on the way out carries it, without needing
+            // useSearchParams (which cannot be prerendered).
+            onClick={(event) => {
+              event.currentTarget.href = `/${locale}/patient${window.location.search}`
+            }}
             target="_blank"
             rel="noreferrer"
             className="inline-flex min-h-11 items-center rounded-full bg-brand px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-navy-900"
@@ -100,7 +122,7 @@ export function StaffBoard({ dict, locale }: { dict: Dictionary; locale: Locale 
         )}
       </div>
 
-      {sessions.length === 0 ? (
+      {identified.length === 0 ? (
         <div className="rounded-3xl border border-brand-wash bg-white p-8 text-center shadow-card sm:p-14">
           <ArtWaiting className="mx-auto h-32 w-48 animate-float" />
           <h2 className="mt-4 text-lg font-bold text-navy-900">{dict.staff.emptyTitle}</h2>
@@ -120,9 +142,24 @@ export function StaffBoard({ dict, locale }: { dict: Dictionary; locale: Locale 
           </button>
         </div>
       ) : (
-        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid">
+          {/* No gap on the container: the spacing lives inside each collapsing
+              wrapper, so a departing card takes its own gap with it instead of
+              leaving a hole behind while it animates. */}
           {visible.map(({ session }) => (
-            <SessionCard key={session.sessionId} session={session} now={now} dict={dict} />
+            <div
+              key={session.sessionId}
+              style={{ transitionDuration: `${EXIT_MS}ms` }}
+              className={`grid transition-all ease-in-out ${
+                session.leavingAt === undefined
+                  ? 'grid-rows-[1fr] opacity-100'
+                  : 'scale-[0.98] grid-rows-[0fr] opacity-0'
+              }`}
+            >
+              <div className="min-h-0 overflow-hidden pb-5">
+                <SessionCard session={session} now={now} dict={dict} />
+              </div>
+            </div>
           ))}
         </div>
       )}

@@ -49,7 +49,7 @@ export function SessionCard({
           {initials(session.data)}
         </span>
         <div className="min-w-0 flex-1">
-          <h3 className="truncate font-bold text-navy-900">{name || dict.staff.unnamed}</h3>
+          <h3 className="truncate font-bold text-navy-900">{name}</h3>
           <p className="mt-0.5 text-xs text-muted">
             <span className="font-mono">{session.sessionId.slice(0, 8).toUpperCase()}</span> ·{' '}
             {ago(now - session.lastChangeAt, dict)}

@@ -187,7 +187,6 @@ const en = {
     count_other: '{count} patients this session',
     openForm: 'Open a patient form ↗',
     all: 'All',
-    unnamed: 'Unnamed patient',
     details: 'Submitted details',
     notAnswered: 'Not answered yet',
     ofRequired: '{filled} of {total} required',

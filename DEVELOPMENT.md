@@ -177,8 +177,10 @@ The progress bar and connection status are sticky to the top of the form, bleedi
 the container edge with a negative margin so they read as a bar rather than a floating
 card.
 
-**Staff dashboard.** One column on mobile, two at `md`, three at `xl`. Cards rather
-than a table: a thirteen-column table is unreadable on a phone and forces a horizontal
+**Staff dashboard.** A single column at every width, with the page capped at
+`max-w-4xl`. A multi-column grid was tried first and read badly: thirteen field rows
+per card makes each one tall, and two or three tall cards side by side leaves the eye
+with nowhere to start. Cards rather than a table: a thirteen-column table is unreadable on a phone and forces a horizontal
 scroll, while a card degrades to a stack for free. Inside each card the field list is a
 native `<details open>`, so staff can collapse patients they are not dealing with on a
 small screen without a line of state management. Field rows stack label-over-value on
@@ -420,10 +422,42 @@ whenever *anyone* on the channel changes, so a session that did not change must 
 its own `changed` list and timestamp, or one patient typing would wipe another
 patient's pending highlight. There is a regression test for exactly that.
 
-**Why the session map is never pruned.** A patient who submits and closes the tab drops
-out of presence — and their submission is the thing staff most needs to keep seeing. So
-rows are marked offline and never deleted. It is also less code than any prune rule,
-and the list resets on reload, which is the right lifetime for a shift dashboard.
+**Leaving, and the one thing that outlives it.** An earlier version never pruned: every
+session ever seen stayed on the board. That was wrong in practice — a patient who closed
+the tab left a card that only a refresh would clear. Now a session absent from presence
+is stamped `leavingAt` rather than deleted, so the card can animate out, and
+`pruneDeparted` drops it once the 320 ms exit has run. One timer for the whole board,
+not one per card.
+
+A patient who *submitted* and then closed the tab is the exception and stays. That row
+is the completed intake — the thing staff most needs to keep — and its badge reads
+"submitted", so it presents as a record rather than a stale live session. Deleting a
+completed submission to tidy the board would be the worse bug.
+
+Two details make the removal prompt rather than eventual. `untrack()` is called before
+unsubscribing, because `removeChannel` alone only unsubscribes this client and leaves
+the server to work out that the presence entry is stale. And a `pagehide` listener
+untracks too, because a tab closed outright runs no React cleanup at all.
+
+**Departing is animated, not abrupt.** The card sits in a wrapper that transitions
+`grid-template-rows` from `1fr` to `0fr` alongside opacity and a slight scale, all
+`ease-in-out` over 320 ms, so the list closes up instead of snapping. The container
+carries no gap — the spacing lives inside each collapsing wrapper, so a departing card
+takes its own gap with it rather than leaving a hole behind while it animates. Entry
+uses the same easing via a keyframe, because a transition cannot run on mount.
+
+**Unnamed sessions are not shown.** Somebody who opened the page and typed nothing
+identifying is not a patient yet, and an unnamed card is pure noise on a triage board.
+Filtered once at the source in `StaffBoard`, so the count, the filter chips, the cards
+and the CSV export cannot disagree about who is on the board.
+
+**Rooms.** Everyone on a deployment shares one channel by default, which is right for
+one clinic's front desk and wrong for a public demo link — two strangers trying it
+would watch each other type their name in. `?room=<name>` on either page opts into a
+private channel. The room comes from the URL, so it is untrusted input: stripped to word
+characters and capped before it becomes a channel name. It is then remembered for the
+tab, which means in-app navigation keeps it and no component needs `useSearchParams` —
+a hook that cannot be prerendered, and which broke the build when it was tried.
 
 **Staff never publishes.** It subscribes without calling `track()`, so it observes
 presence without appearing in it. No role flag, no filtering. Any entry without a
@@ -435,10 +469,13 @@ presence without appearing in it. No role flag, no filtering. Any entry without 
 exported specifically so the core of the dashboard can be tested without live
 credentials or a network. `presence.test.ts` covers first sighting, a field edit, a
 no-op sync not resetting the clock, one patient not clobbering another's highlight,
-going offline without deletion, a submission surviving tab close, submission counting
-as activity, non-patient entries being ignored, and a rejoin reusing its own row.
+departure being stamped once rather than refreshed by every later sync, the row being
+pruned only after its exit animation, a returning patient not being pruned mid-form, a
+submission surviving both tab close and the sweep, submission counting as activity,
+non-patient entries being ignored, a rejoin reusing its own row, and the room name
+being sanitised.
 
 Alongside it: `schema.test.ts` for the validation rules, `export.test.ts` for CSV
 escaping, formula injection, the BOM and the localised columns, and `i18n.test.ts` for
-dictionary parity. Thirty-nine tests on `node:test` through `tsx` — no framework, no
+dictionary parity. Forty-three tests on `node:test` through `tsx` — no framework, no
 fixtures, no mocks.

@@ -3,12 +3,16 @@
 A responsive, bilingual patient intake form whose every keystroke appears on a live
 front-desk dashboard. Built for the Agnos front-end candidate assignment.
 
-- **Patient form** — `/th/patient` · thirteen fields, inline validation, works on a phone
-- **Front desk** — `/th/staff` · every form filling in live, with presence status per patient
-- **English** — the same pages at `/en/patient` and `/en/staff`
-- **Live demo** — _to be filled in after deployment_
+**Live demo — <https://agnos-intake-liart.vercel.app>**
 
-Two interfaces, one shared channel, no database.
+- **Patient form** — [`/th/patient`](https://agnos-intake-liart.vercel.app/th/patient) · thirteen fields, inline validation, works on a phone
+- **Front desk** — [`/th/staff`](https://agnos-intake-liart.vercel.app/th/staff) · every form filling in live, with presence status per patient
+- **English** — the same pages at `/en/patient` and `/en/staff`
+
+Open the two side by side, or one on a phone and one on a laptop, and watch them sync.
+Add `?room=yourname` to both URLs to get a channel to yourself.
+
+Two interfaces, one channel, no database.
 
 ---
 
@@ -60,7 +64,7 @@ nothing is silently broken.
 | `npm run build` | Production build (also type-checks) |
 | `npm start` | Serve the production build |
 | `npm run lint` | ESLint, including `react-hooks` and `next/core-web-vitals` |
-| `npm test` | 39 unit tests — validation, presence merge, CSV export, translations |
+| `npm test` | 43 unit tests — validation, presence merge, CSV export, translations |
 
 ---
 
@@ -151,8 +155,19 @@ to the Buddhist era halfway through the file.
 - Status counters double as filters — one control instead of a legend plus a dropdown.
 - Fields that just changed flash for 1.4 s, so staff can see *what* moved, not only
   that something did.
-- A submitted form stays on the board after the patient closes the tab. That is the
-  reason the session map is never pruned.
+- Leaving the form removes the card. It is stamped as departing, animates out over
+  320 ms and is then dropped — and `untrack()` fires on unmount and on `pagehide`, so
+  the server is told immediately instead of being left to notice the socket died.
+- **One exception:** a patient who *submitted* and then closed the tab keeps their row.
+  That is the completed intake, the thing staff most needs, and its badge reads
+  "submitted" so it presents as a record rather than a stale live session.
+- A session with no name at all is not shown. Somebody who opened the page and typed
+  nothing is not a patient yet, and an unnamed card is noise. Filtered at the source,
+  so the count, the chips, the cards and the export all agree.
+- `?room=<name>` on either page opts into a private channel. Without it, everyone on a
+  deployment shares one board — right for one clinic's front desk, wrong for a public
+  demo where two strangers would watch each other type. The room is remembered for the
+  tab, so navigating within the app keeps it.
 
 **Form quality**
 

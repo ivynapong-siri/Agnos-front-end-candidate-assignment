@@ -57,7 +57,7 @@ module.exports = {
       animation: {
         breathe: 'breathe 1.8s ease-in-out infinite',
         flash: 'flash 1.4s ease-out',
-        rise: 'rise .32s ease-out both',
+        rise: 'rise .32s ease-in-out both',
         float: 'float 6s ease-in-out infinite',
       },
     },

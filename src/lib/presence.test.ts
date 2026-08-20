@@ -1,6 +1,14 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { deriveStatus, mergePresence, type PatientPresence, type StaffSession } from './realtime'
+import {
+  EXIT_MS,
+  channelFor,
+  deriveStatus,
+  mergePresence,
+  pruneDeparted,
+  type PatientPresence,
+  type StaffSession,
+} from './realtime'
 
 /**
  * The staff dashboard's whole behaviour comes out of mergePresence, and it is
@@ -78,14 +86,39 @@ test("one patient typing does not wipe another patient's pending highlight", () 
   assert.equal(third.get('b')?.lastChangeAt, 2500)
 })
 
-test('leaving marks a session offline but never deletes it', () => {
+test('leaving stamps a departure rather than vanishing mid-animation', () => {
   const first = mergePresence(EMPTY, snapshot(presence()), 1000)
   const gone = mergePresence(first, {}, 4000)
 
-  assert.equal(gone.size, 1, 'the record stays on the board')
+  assert.equal(gone.size, 1, 'still rendered, so it can animate out')
   assert.equal(gone.get('p1')?.online, false)
+  assert.equal(gone.get('p1')?.leavingAt, 4000)
   assert.equal(gone.get('p1')?.lastChangeAt, 1000, 'going offline is not activity')
   assert.equal(deriveStatus(gone.get('p1')!, 4000), 'disconnected')
+})
+
+test('a departure is stamped once, not refreshed by every later sync', () => {
+  const first = mergePresence(EMPTY, snapshot(presence()), 1000)
+  const gone = mergePresence(first, {}, 4000)
+  // Presence sync fires for everyone; a second one must not restart the exit.
+  const later = mergePresence(gone, {}, 4200)
+
+  assert.equal(later.get('p1')?.leavingAt, 4000, 'the original departure time stands')
+})
+
+test('the row is pruned only once its exit animation has run', () => {
+  const gone = mergePresence(mergePresence(EMPTY, snapshot(presence()), 1000), {}, 4000)
+
+  assert.equal(pruneDeparted(gone, 4000 + EXIT_MS - 1).size, 1, 'still animating')
+  assert.equal(pruneDeparted(gone, 4000 + EXIT_MS).size, 0, 'animation done, row gone')
+})
+
+test('a patient who comes back is not pruned mid-form', () => {
+  const gone = mergePresence(mergePresence(EMPTY, snapshot(presence()), 1000), {}, 4000)
+  const back = mergePresence(gone, snapshot(presence()), 4100)
+
+  assert.equal(back.get('p1')?.leavingAt, undefined, 'the pending departure is cancelled')
+  assert.equal(pruneDeparted(back, 9999).size, 1, 'and it survives a later sweep')
 })
 
 test('a submission survives the patient closing the tab', () => {
@@ -94,7 +127,9 @@ test('a submission survives the patient closing the tab', () => {
   const closed = mergePresence(submitted, {}, 3000)
 
   assert.equal(closed.get('p1')?.submitted, true)
-  // The whole reason the map is never pruned.
+  assert.equal(closed.get('p1')?.leavingAt, undefined, 'a completed intake is not a departure')
+  // A submitted row is the record staff most needs; it must outlive the sweep.
+  assert.equal(pruneDeparted(closed, 999_999).size, 1)
   assert.equal(deriveStatus(closed.get('p1')!, 999_999), 'submitted')
 })
 
@@ -124,4 +159,19 @@ test('a rejoining patient reuses its own row rather than adding a second', () =>
 
   assert.equal(back.size, 1)
   assert.equal(back.get('p1')?.online, true)
+  assert.equal(back.get('p1')?.leavingAt, undefined)
+})
+
+test('the optional room is derived from the URL and sanitised', () => {
+  // Default: everyone shares one channel, which is the clinic's front desk.
+  assert.equal(channelFor(''), channelFor('?other=1'))
+  assert.notEqual(channelFor('?room=demo'), channelFor(''))
+  assert.equal(channelFor('?room=demo'), channelFor('?room=demo'), 'same room, same channel')
+  assert.notEqual(channelFor('?room=demo'), channelFor('?room=other'))
+
+  // The room name comes from the URL, so it is untrusted input.
+  assert.equal(channelFor('?room=a/b*c'), channelFor('?room=abc'), 'punctuation stripped')
+  assert.equal(channelFor('?room=  '), channelFor(''), 'blank falls back to the shared channel')
+  const long = channelFor(`?room=${'x'.repeat(200)}`)
+  assert.ok(long.length < 80, 'room length is capped')
 })

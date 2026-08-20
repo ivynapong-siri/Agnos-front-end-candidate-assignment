@@ -17,7 +17,7 @@ export default async function StaffPage({ params }: { params: Promise<{ locale: 
   const locale = isLocale(raw) ? raw : DEFAULT_LOCALE
 
   return (
-    <main className="mx-auto w-full max-w-7xl px-4 pb-20 sm:px-6">
+    <main className="mx-auto w-full max-w-4xl px-4 pb-20 sm:px-6">
       <StaffBoard dict={getDictionary(locale)} locale={locale} />
     </main>
   )
