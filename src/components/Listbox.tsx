@@ -231,7 +231,7 @@ export function Listbox({
           </div>
         )}
 
-        <ul role="listbox" aria-labelledby={id} className="max-h-full overflow-y-auto overscroll-contain p-1.5">
+        <ul role="listbox" aria-labelledby={id} className="max-h-full overflow-y-auto overflow-x-hidden overscroll-contain p-1.5">
           {everOpened &&
             filtered.map((option, index) => {
             const isSelected = option.value === value

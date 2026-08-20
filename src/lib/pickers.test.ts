@@ -3,7 +3,7 @@ import { test } from 'node:test'
 import { formatLongDate, fromIsoDate, monthGrid, monthNames, toIsoDate, weekdayNames } from './calendar'
 import en from '../i18n/en'
 import th from '../i18n/th'
-import { isOutOfView } from './anchor'
+import { clampLeft, isOutOfView } from './anchor'
 import { CENTRE, ORBIT, orbitFrames, radiusAt, restingPosition } from './orbit'
 import { COUNTRIES, composePhone, flagFor, parsePhone } from './phone'
 
@@ -152,6 +152,16 @@ test('a trigger is only out of view once it has fully left the viewport', () => 
   // Fully gone: the panel would float beside nothing.
   assert.equal(isOutOfView(-60, 0, H), true)
   assert.equal(isOutOfView(800, 848, H), true)
+})
+
+test('a panel wider than its trigger is pulled back inside the viewport', () => {
+  const W = 390 // a phone in landscape, the tightest case that still anchors
+  // Room to spare: the panel stays on the trigger.
+  assert.equal(clampLeft(40, 240, W), 40)
+  // Trigger near the right edge — the panel would have run off, so it slides left.
+  assert.equal(clampLeft(300, 240, W), W - 240 - 8)
+  // Trigger hard against the left edge still keeps its gutter.
+  assert.equal(clampLeft(0, 240, W), 8)
 })
 
 /* ------------------------------------------------------------------ *

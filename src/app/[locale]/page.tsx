@@ -43,8 +43,8 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
           className="pointer-events-none -z-10 hidden select-none object-cover object-right lg:block"
         />
 
-        <div className="mx-auto grid w-full max-w-7xl flex-1 content-center gap-x-10 gap-y-8 px-4 py-10 sm:px-6 lg:grid-cols-2">
-          <div className="max-w-md lg:col-start-1 lg:row-start-1">
+        <div className="mx-auto grid w-full max-w-7xl flex-1 content-center gap-x-10 gap-y-8 px-4 py-10 sm:px-6 md:grid-cols-2">
+          <div className="max-w-md md:col-span-2 md:max-w-2xl lg:col-span-1 lg:col-start-1 lg:row-start-1 lg:max-w-md">
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-brand">{dict.landing.eyebrow}</p>
             <h1 className="mt-3 text-3xl font-bold text-navy-900 sm:text-4xl">{dict.landing.heading}</h1>
             <p className="mt-4 text-base text-ink/80">{dict.landing.body}</p>
@@ -56,7 +56,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
             title={dict.landing.patientTitle}
             blurb={dict.landing.patientBlurb}
             cta={dict.landing.patientCta}
-            className="lg:col-start-1 lg:row-start-2"
+            className="md:col-start-1 md:row-start-2 lg:col-start-1 lg:row-start-2"
           />
 
           <ChoiceCard
@@ -65,7 +65,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
             title={dict.landing.staffTitle}
             blurb={dict.landing.staffBlurb}
             cta={dict.landing.staffCta}
-            className="lg:col-start-2 lg:row-start-2 lg:max-w-sm"
+            className="md:col-start-2 md:row-start-2 lg:col-start-2 lg:row-start-2"
           />
         </div>
 
