@@ -16,16 +16,16 @@
  *     failed at 4.09:1.
  *   - the amber status was #B4690E at 4.07:1. Now #96520A, 5.76:1.
  *   - control borders were #E8EEF9 at 1.16:1 against white, where WCAG 1.4.11
- *     wants 3:1 for the boundary of an interactive component. Now #6690CC,
- *     3.27:1 — the lightest brand-family blue that passes, so the forms are
- *     more defined than before. That is the cost of the rule, not a preference.
+ *     wants 3:1 for the boundary of an interactive component. Now #4F8DE6,
+ *     3.34:1. A brighter blue was asked for; rgb(131 182 255) measures 2.08:1,
+ *     so this is the nearest value in that direction that still passes.
  * ------------------------------------------------------------------ */
 
 :root {
   --c-brand: 26 89 194; /* #1A59C2 — 6.46:1 on white */
   --c-brand-tint: 143 182 232; /* #8FB6E8 — illustrations only, decorative */
   --c-brand-wash: 232 238 249; /* #E8EEF9 — surfaces, not borders */
-  --c-line: 102 144 204; /* #6690CC — control borders, 3.27:1 */
+  --c-line: 79 141 230; /* #4F8DE6 — control borders, 3.34:1 on white */
   --c-navy-900: 0 27 82; /* #001B52 — 15.79:1 */
   --c-navy-950: 8 27 58; /* #081B3A */
   --c-ink: 26 32 44; /* #1A202C — 15.69:1 */

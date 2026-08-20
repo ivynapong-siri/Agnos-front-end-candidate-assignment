@@ -60,30 +60,6 @@ export function ArtStaff({ className }: { className?: string }) {
   )
 }
 
-/** Staff dashboard, nobody filling anything in yet. */
-export function ArtWaiting({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 200 140" fill="none" className={className} aria-hidden="true">
-      <circle cx="100" cy="70" r="58" className="fill-brand-wash" opacity="0.7" />
-      <Mark cx={92} cy={44} size={30} className="fill-brand-tint" />
-      <Mark cx={110} cy={44} size={30} className="fill-brand" />
-      {[0, 1, 2].map((row) => (
-        <rect
-          key={row}
-          x={52 + row * 6}
-          y={80 + row * 16}
-          width={96 - row * 12}
-          height="11"
-          rx="5.5"
-          strokeDasharray="6 6"
-          strokeWidth="2"
-          className="stroke-brand-tint"
-        />
-      ))}
-    </svg>
-  )
-}
-
 /** Post-submit confirmation. */
 export function ArtDone({ className }: { className?: string }) {
   return (

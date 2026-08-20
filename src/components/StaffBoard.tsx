@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ArtWaiting } from './Art'
+import { ArtWaiting } from './ArtWaiting'
 import { LiveIndicator, SetupNotice } from './LiveIndicator'
 import { SessionCard } from './SessionCard'
 import { STATUS_ORDER, STATUS_STYLE, statusTitle } from './StatusBadge'

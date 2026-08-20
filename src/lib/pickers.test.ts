@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { formatLongDate, fromIsoDate, monthGrid, monthNames, toIsoDate, weekdayNames } from './calendar'
 import { isOutOfView } from './anchor'
+import { CENTRE, ORBIT, orbitFrames, radiusAt, restingPosition } from './orbit'
 import { COUNTRIES, composePhone, flagFor, parsePhone } from './phone'
 
 /**
@@ -146,4 +147,67 @@ test('a trigger is only out of view once it has fully left the viewport', () => 
   // Fully gone: the panel would float beside nothing.
   assert.equal(isOutOfView(-60, 0, H), true)
   assert.equal(isOutOfView(800, 848, H), true)
+})
+
+/* ------------------------------------------------------------------ *
+ * Waiting-state orbit
+ * ------------------------------------------------------------------ */
+
+test('the orbit radius follows the four phases in order', () => {
+  assert.equal(radiusAt(0), 1, 'starts orbiting at full radius')
+  assert.equal(radiusAt(0.2), 1, 'still orbiting')
+  assert.equal(radiusAt(0.5), 0, 'fully gathered at the midpoint')
+  assert.equal(radiusAt(0.68), 1, 'scattered back out')
+  assert.equal(radiusAt(0.9), 1, 'orbiting again')
+  // Gather and scatter have to be monotonic, or the dots would jitter.
+  for (let t = 0.35; t < 0.5; t += 0.01) assert.ok(radiusAt(t) >= radiusAt(t + 0.01) - 1e-9, `gather at ${t}`)
+  for (let t = 0.5; t < 0.67; t += 0.01) assert.ok(radiusAt(t) <= radiusAt(t + 0.01) + 1e-9, `scatter at ${t}`)
+})
+
+test('all three dots meet at the centre — the merge phase', () => {
+  const frames = [0, 1, 2].map(orbitFrames)
+  const midpoint = frames[0].times.indexOf(0.5)
+  assert.ok(midpoint > 0, 'the midpoint is actually sampled')
+
+  for (const [index, dot] of frames.entries()) {
+    assert.ok(Math.abs(dot.cx[midpoint] - CENTRE.x) < 0.01, `dot ${index} x at centre`)
+    assert.ok(Math.abs(dot.cy[midpoint] - CENTRE.y) < 0.01, `dot ${index} y at centre`)
+  }
+})
+
+test('the loop is seamless, so a per-dot delay never shows a jump', () => {
+  for (const index of [0, 1, 2]) {
+    const { cx, cy } = orbitFrames(index)
+    assert.equal(cx[0], cx.at(-1), `dot ${index} returns to its starting x`)
+    assert.equal(cy[0], cy.at(-1), `dot ${index} returns to its starting y`)
+  }
+})
+
+test('dots stay on the orbit and are evenly spaced at rest', () => {
+  // Coordinates are rounded to two decimals, which at radius 26 leaves about
+  // 0.01 of positional and 5e-4 rad of angular slack. Tolerances allow for it.
+  const SLACK = 0.02
+
+  for (const index of [0, 1, 2]) {
+    const { cx, cy } = orbitFrames(index)
+    cx.forEach((x, step) => {
+      const distance = Math.hypot(x - CENTRE.x, cy[step] - CENTRE.y)
+      assert.ok(distance <= ORBIT + SLACK, `dot ${index} step ${step} never leaves the orbit`)
+    })
+
+    const rest = restingPosition(index)
+    const restDistance = Math.hypot(rest.cx - CENTRE.x, rest.cy - CENTRE.y)
+    assert.ok(Math.abs(restDistance - ORBIT) < SLACK, `dot ${index} rests on the orbit`)
+  }
+
+  // A third of a turn apart, so the resting triangle is even.
+  const angles = [0, 1, 2].map((index) => {
+    const point = restingPosition(index)
+    return Math.atan2(point.cy - CENTRE.y, point.cx - CENTRE.x)
+  })
+  const third = (2 * Math.PI) / 3
+  assert.ok(Math.abs(angles[1] - angles[0] - third) < 1e-3, `spacing was ${(angles[1] - angles[0]).toFixed(5)}`)
+  // atan2 wraps past pi, so compare the third dot modulo a full turn.
+  const wrapped = (angles[2] - angles[1] + 2 * Math.PI) % (2 * Math.PI)
+  assert.ok(Math.abs(wrapped - third) < 1e-3, `spacing was ${wrapped.toFixed(5)}`)
 })
