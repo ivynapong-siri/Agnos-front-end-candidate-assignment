@@ -30,7 +30,7 @@ export function ChoiceCard({
   return (
     <Link
       href={href}
-      className={`glass-card group flex flex-col overflow-hidden p-6 transition-all duration-300 hover:-translate-y-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand sm:p-8 ${className ?? ''}`}
+      className={`glass-card group block overflow-hidden p-6 transition-all duration-300 hover:-translate-y-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand sm:p-8 ${className ?? ''}`}
     >
       {/* Gloss sweep: parked off the left edge, sent past the right on hover,
           clipped by the card. */}
@@ -39,13 +39,13 @@ export function ChoiceCard({
         className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/60 to-transparent transition-transform duration-700 ease-out group-hover:translate-x-[200%]"
       />
 
-      <span className="relative flex flex-1 flex-col">
+      <span className="relative block">
         <span className="block w-fit transition-transform duration-300 ease-out group-hover:scale-125">
           <Art className="h-24 w-24" />
         </span>
         <span className="mt-5 block text-xl font-bold text-navy-900">{title}</span>
         <span className="mt-2 block text-sm text-ink/80">{blurb}</span>
-        <span className="mt-auto inline-flex items-center gap-2 pt-5 font-semibold text-brand">
+        <span className="mt-5 inline-flex items-center gap-2 font-semibold text-brand">
           {cta}
           <span className="transition-transform group-hover:translate-x-1" aria-hidden="true">
             →

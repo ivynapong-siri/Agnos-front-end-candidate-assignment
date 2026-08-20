@@ -56,7 +56,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
             title={dict.landing.patientTitle}
             blurb={dict.landing.patientBlurb}
             cta={dict.landing.patientCta}
-            className="md:col-start-1 md:row-start-2 lg:col-start-1 lg:row-start-2 lg:max-w-[25rem]"
+            className="md:col-start-1 md:row-start-2 lg:col-start-1 lg:row-start-2"
           />
 
           <ChoiceCard
@@ -65,7 +65,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
             title={dict.landing.staffTitle}
             blurb={dict.landing.staffBlurb}
             cta={dict.landing.staffCta}
-            className="md:col-start-2 md:row-start-2 lg:col-start-2 lg:row-start-2 lg:max-w-[25rem]"
+            className="md:col-start-2 md:row-start-2 lg:col-start-2 lg:row-start-2 lg:max-w-sm"
           />
         </div>
 
