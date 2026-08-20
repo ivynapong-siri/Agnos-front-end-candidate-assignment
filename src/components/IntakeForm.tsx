@@ -5,6 +5,7 @@ import { FormProvider, useForm, useFormContext, useWatch } from 'react-hook-form
 import { zodResolver } from '@hookform/resolvers/zod'
 import { ArtDone, SectionIcon } from './Art'
 import { Field } from './Field'
+import { GlassButton } from './GlassButton'
 import { LiveIndicator, SetupNotice } from './LiveIndicator'
 import { fill, plural, type Dictionary, type Locale } from '@/i18n'
 import {
@@ -214,13 +215,9 @@ function ThankYou({
         ))}
       </dl>
 
-      <button
-        type="button"
-        onClick={onStartAnother}
-        className="mt-8 min-h-12 rounded-xl border-2 border-brand-wash px-6 font-semibold text-brand transition-colors hover:border-brand-tint"
-      >
+      <GlassButton tone="secondary" type="button" onClick={onStartAnother} className="mt-8 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">
         {dict.receipt.another}
-      </button>
+      </GlassButton>
     </div>
   )
 }
@@ -349,13 +346,13 @@ export function IntakeForm({ dict, locale }: { dict: Dictionary; locale: Locale 
             <span>{dict.form.privacy}</span>
           </p>
 
-          <button
+          <GlassButton
             type="submit"
             disabled={methods.formState.isSubmitting}
-            className="min-h-12 w-full rounded-xl bg-brand px-6 text-base font-bold text-white shadow-card transition-all hover:bg-navy-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:opacity-60 sm:w-auto"
+            className="w-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand sm:w-auto"
           >
             {dict.form.submit}
-          </button>
+          </GlassButton>
         </div>
       </form>
     </FormProvider>

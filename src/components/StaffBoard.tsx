@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { ArtWaiting } from './ArtWaiting'
 import { LiveIndicator, SetupNotice } from './LiveIndicator'
+import { GlassButton } from './GlassButton'
 import { SessionCard } from './SessionCard'
 import { STATUS_ORDER, STATUS_STYLE, statusTitle } from './StatusBadge'
 import { fill, plural, type Dictionary, type Locale } from '@/i18n'
@@ -52,11 +53,6 @@ export function StaffBoard({ dict, locale }: { dict: Dictionary; locale: Locale 
     downloadCsv(exportFilename(dict.staff.export.filename, now), rows)
   }
 
-  const chip = (active: boolean) =>
-    `min-h-11 rounded-full px-3.5 text-xs font-semibold transition-colors ${
-      active ? 'bg-navy-900 text-white' : 'bg-white text-ink/70 ring-1 ring-brand-wash hover:ring-brand-tint'
-    }`
-
   return (
     <>
       {!realtimeConfigured && <SetupNotice dict={dict} locale={locale} />}
@@ -72,51 +68,61 @@ export function StaffBoard({ dict, locale }: { dict: Dictionary; locale: Locale 
             </p>
           </div>
           <LiveIndicator connection={connection} dict={dict} />
-          <button
+          <GlassButton
+            tone="secondary"
+            size="sm"
             type="button"
             onClick={exportVisible}
             disabled={visible.length === 0}
             title={visible.length === 0 ? dict.staff.export.nothing : undefined}
-            className="min-h-11 rounded-full bg-white px-4 py-2 text-xs font-semibold text-brand ring-1 ring-brand-wash transition-colors hover:ring-brand-tint disabled:opacity-50 disabled:hover:ring-brand-wash"
+            className="focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
           >
             {dict.staff.export.button}
-          </button>
-          <a
+          </GlassButton>
+          <GlassButton
+            size="sm"
             href={`/${locale}/patient`}
+            external
             // target=_blank with rel=noreferrer gives the new tab a clean
             // sessionStorage, so the remembered room would be lost. Rewriting
             // the href on the way out carries it, without needing
             // useSearchParams (which cannot be prerendered).
-            onClick={(event) => {
+            onClick={(event: React.MouseEvent<HTMLAnchorElement>) => {
               event.currentTarget.href = `/${locale}/patient${window.location.search}`
             }}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex min-h-11 items-center rounded-full bg-brand px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-navy-900"
+            className="focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
           >
             {dict.staff.openForm}
-          </a>
+          </GlassButton>
         </div>
 
         {/* Counters double as filters — one control instead of a legend plus a dropdown. */}
         {counts.length > 0 && (
           <div className="mt-3 flex flex-wrap gap-2">
-            <button type="button" onClick={() => setFilter('all')} className={chip(filter === 'all')}>
+            <GlassButton
+              tone={filter === 'all' ? 'primary' : 'ghost'}
+              size="sm"
+              type="button"
+              onClick={() => setFilter('all')}
+              className="text-xs focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+            >
               {dict.staff.all} {decorated.length}
-            </button>
+            </GlassButton>
             {counts.map(({ status, count }) => (
-              <button
+              <GlassButton
                 key={status}
+                tone={filter === status ? 'primary' : 'ghost'}
+                size="sm"
                 type="button"
                 onClick={() => setFilter(status)}
                 title={statusTitle(dict, status)}
-                className={chip(filter === status)}
+                className="text-xs focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
               >
-                <span
-                  className={`mr-1.5 inline-block h-2 w-2 rounded-full align-middle ${STATUS_STYLE[status].dot}`}
-                />
+                <span className={`h-2 w-2 shrink-0 rounded-full ${STATUS_STYLE[status].dot}`} />
                 {dict.status[status].short} {count}
-              </button>
+              </GlassButton>
             ))}
           </div>
         )}
@@ -133,13 +139,9 @@ export function StaffBoard({ dict, locale }: { dict: Dictionary; locale: Locale 
           <p className="text-sm text-muted">
             {fill(dict.staff.noneWithStatus, { status: dict.status[filter as PatientStatus].label })}
           </p>
-          <button
-            type="button"
-            onClick={() => setFilter('all')}
-            className="mt-3 text-sm font-semibold text-brand underline underline-offset-4"
-          >
+          <GlassButton tone="secondary" size="sm" type="button" onClick={() => setFilter('all')} className="mt-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">
             {dict.staff.showAll}
-          </button>
+          </GlassButton>
         </div>
       ) : (
         <div className="grid">

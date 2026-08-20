@@ -1,6 +1,7 @@
 'use client'
 
 import { useSyncExternalStore } from 'react'
+import { GlassButton } from './GlassButton'
 import type { Dictionary } from '@/i18n'
 
 /**
@@ -55,14 +56,14 @@ export function ThemeToggle({ dict }: { dict: Dictionary }) {
   }
 
   return (
-    <button
+    <GlassButton
+      tone={high ? 'primary' : 'ghost'}
+      size="sm"
       type="button"
       onClick={toggle}
       aria-pressed={high}
       title={dict.theme.hint}
-      className={`inline-flex min-h-11 shrink-0 items-center gap-2 rounded-full px-3.5 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
-        high ? 'bg-navy-900 text-white' : 'bg-white/50 text-navy-900 ring-1 ring-white/70 backdrop-blur-md'
-      }`}
+      className="shrink-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
     >
       <ContrastIcon />
       {/* Visible from sm up: an icon alone says nothing, and a title attribute
@@ -70,6 +71,6 @@ export function ThemeToggle({ dict }: { dict: Dictionary }) {
           language switch, so it stays as the accessible name. */}
       <span className="hidden sm:inline">{dict.theme.label}</span>
       <span className="sr-only sm:hidden">{dict.theme.label}</span>
-    </button>
+    </GlassButton>
   )
 }

@@ -7,10 +7,10 @@ import type { ArtPatient } from './Art'
  * Pure CSS hover, so this stays a server component — `group` on the link drives
  * both child effects and nothing here needs a runtime.
  *
- * Glass is `bg-white/85` rather than anything more translucent because that is
- * the floor at which the muted body text still clears 4.5:1 over the darkest
- * point of the still background, the blue folder at rgb(30 91 182). At /80 it
- * measures 4.26:1 and fails.
+ * The glass itself is the shared `.glass-card` treatment, the same material as
+ * GlassButton, so the cards and the buttons cannot drift apart. Its fill bottoms
+ * out at 0.8, which is the floor at which the body text still clears 4.5:1 over
+ * the darkest point of the background, the blue folder at rgb(30 91 182).
  */
 export function ChoiceCard({
   href,
@@ -30,7 +30,7 @@ export function ChoiceCard({
   return (
     <Link
       href={href}
-      className={`group relative isolate block overflow-hidden rounded-3xl bg-gradient-to-br from-white/95 to-white/80 p-6 shadow-[0_10px_36px_-14px_rgba(0,27,82,0.28),inset_0_1px_0_rgba(255,255,255,0.95)] ring-1 ring-white/80 backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-lift focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand sm:p-8 ${className ?? ''}`}
+      className={`glass-card group block overflow-hidden p-6 transition-all duration-300 hover:-translate-y-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand sm:p-8 ${className ?? ''}`}
     >
       {/* Gloss sweep: parked off the left edge, sent past the right on hover,
           clipped by the card. */}
