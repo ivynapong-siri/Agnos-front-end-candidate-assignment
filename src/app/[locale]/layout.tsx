@@ -1,0 +1,89 @@
+import type { Metadata, Viewport } from 'next'
+import { Anuphan } from 'next/font/google'
+import Link from 'next/link'
+import { LanguageToggle } from '@/components/LanguageToggle'
+import { Logo } from '@/components/Logo'
+import { DEFAULT_LOCALE, LOCALES, getDictionary, isLocale } from '@/i18n'
+import '../globals.css'
+
+/**
+ * This is the root layout: there is no app/layout.tsx, because the language has
+ * to be known before <html lang> is written. Putting the locale in the route
+ * means the server renders the right language in the first byte of HTML — no
+ * flash of the wrong language, and nothing for hydration to disagree about.
+ */
+
+// One typeface for both scripts. Anuphan is drawn as a Thai/Latin pair, so the
+// two share metrics instead of being two fonts of different apparent size
+// stacked on each other.
+const anuphan = Anuphan({
+  subsets: ['latin', 'thai'],
+  variable: '--font-anuphan',
+  display: 'swap',
+})
+
+export function generateStaticParams() {
+  return LOCALES.map((locale) => ({ locale }))
+}
+
+/** Only th and en exist; anything else 404s at build time. */
+export const dynamicParams = false
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>
+}): Promise<Metadata> {
+  const { locale } = await params
+  const dict = getDictionary(isLocale(locale) ? locale : DEFAULT_LOCALE)
+  return {
+    title: { default: dict.meta.siteTitle, template: `%s · ${dict.meta.siteTitle}` },
+    description: dict.meta.siteDescription,
+  }
+}
+
+export const viewport: Viewport = {
+  themeColor: '#1A59C2',
+  width: 'device-width',
+  initialScale: 1,
+}
+
+export default async function LocaleLayout({
+  children,
+  params,
+}: {
+  children: React.ReactNode
+  params: Promise<{ locale: string }>
+}) {
+  const { locale: raw } = await params
+  const locale = isLocale(raw) ? raw : DEFAULT_LOCALE
+  const dict = getDictionary(locale)
+
+  return (
+    <html lang={locale} className={anuphan.variable}>
+      <body>
+        {/* Soft brand wash behind everything. Blurred CSS circles rather than
+            SVG blobs: same look, nothing to maintain. */}
+        <div aria-hidden="true" className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+          <div className="absolute -left-40 -top-40 h-[30rem] w-[30rem] rounded-full bg-brand-wash opacity-80 blur-3xl" />
+          <div className="absolute -bottom-48 -right-32 h-[26rem] w-[26rem] rounded-full bg-brand-tint/25 blur-3xl" />
+        </div>
+
+        <header className="mx-auto flex w-full max-w-7xl items-center gap-4 px-4 py-5 sm:px-6">
+          <Link
+            href={`/${locale}`}
+            aria-label={dict.nav.home}
+            className="rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand"
+          >
+            <Logo className="h-9 w-auto" />
+          </Link>
+          <div className="ml-auto">
+            <LanguageToggle locale={locale} dict={dict} />
+          </div>
+        </header>
+
+        {children}
+      </body>
+    </html>
+  )
+}

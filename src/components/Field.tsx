@@ -1,22 +1,24 @@
 'use client'
 
 import { useFormContext, useWatch } from 'react-hook-form'
-import type { FieldDef } from '@/lib/fields'
+import type { Dictionary } from '@/i18n'
+import { OPTION_VALUES, type FieldDef } from '@/lib/fields'
 import type { PatientForm } from '@/lib/schema'
 
 /**
  * One component for all seven input shapes. Reading the shape from the field
- * manifest means adding a field is a data change, not a JSX change.
+ * manifest and the copy from the dictionary means adding a field is a data
+ * change, and adding a language touches no JSX at all.
  *
  * Accessibility contract, since this is the only place it can be enforced:
  *   - every control has a real <label for>, never a placeholder as its label
  *   - aria-invalid + aria-describedby wire the error to the control
  *   - errors are announced via role="alert"
- *   - hit area is 48px tall, above the 44px touch-target floor
+ *   - hit area clears the 44px touch-target floor
  */
 
 const CONTROL =
-  'w-full rounded-xl border-2 bg-white px-4 py-3 text-base leading-6 text-ink transition-colors ' +
+  'w-full rounded-xl border-2 bg-white px-4 py-3 text-base text-ink transition-colors ' +
   'placeholder:text-muted focus:outline-none focus:shadow-ring'
 
 const CONTROL_STATE = {
@@ -28,36 +30,48 @@ const CONTROL_STATE = {
 function CheckIcon() {
   return (
     <svg viewBox="0 0 16 16" className="h-4 w-4 shrink-0" fill="none" aria-hidden="true">
-      <path d="M3 8.5l3.2 3.2L13 5" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="stroke-state-ok" />
+      <path
+        d="M3 8.5l3.2 3.2L13 5"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="stroke-state-ok"
+      />
     </svg>
   )
 }
 
 function AlertIcon() {
   return (
-    <svg viewBox="0 0 16 16" className="mt-0.5 h-4 w-4 shrink-0" fill="none" aria-hidden="true">
+    <svg viewBox="0 0 16 16" className="mt-1 h-4 w-4 shrink-0" fill="none" aria-hidden="true">
       <circle cx="8" cy="8" r="6.6" strokeWidth="1.6" className="stroke-state-error" />
       <path d="M8 4.8v4.1M8 11.4h.01" strokeWidth="1.8" strokeLinecap="round" className="stroke-state-error" />
     </svg>
   )
 }
 
-export function Field({ def }: { def: FieldDef }) {
+export function Field({ def, dict }: { def: FieldDef; dict: Dictionary }) {
   const {
     register,
     control,
     formState: { errors, touchedFields },
   } = useFormContext<PatientForm>()
 
+  const copy = dict.form.fields[def.name]
   const value = useWatch({ control, name: def.name }) ?? ''
   const error = errors[def.name]?.message as string | undefined
   const touched = Boolean(touchedFields[def.name])
   const valid = !error && touched && value.trim() !== ''
 
-  const hintId = def.hint ? `${def.name}-hint` : undefined
+  const hintId = copy.hint ? `${def.name}-hint` : undefined
   const errorId = error ? `${def.name}-error` : undefined
   const describedBy = [hintId, errorId].filter(Boolean).join(' ') || undefined
   const listId = def.type === 'combo' ? `${def.name}-options` : undefined
+
+  const optionValues = def.optionsKey ? OPTION_VALUES[def.optionsKey] : undefined
+  const optionLabels: Record<string, string> | undefined = def.optionsKey
+    ? dict.form.options[def.optionsKey]
+    : undefined
 
   const shared = {
     id: def.name,
@@ -70,20 +84,23 @@ export function Field({ def }: { def: FieldDef }) {
 
   return (
     <div>
-      <label htmlFor={def.name} className="mb-1.5 flex items-baseline gap-2 text-sm font-semibold text-navy-900">
-        {def.label}
+      <label
+        htmlFor={def.name}
+        className="mb-1.5 flex flex-wrap items-baseline gap-x-2 text-sm font-semibold text-navy-900"
+      >
+        {copy.label}
         {/* Mark what can be skipped, not what is mandatory: on a form that is
             mostly required, a wall of asterisks tells the patient nothing. */}
-        {!def.required && <span className="text-xs font-normal text-muted">optional</span>}
+        {!def.required && <span className="text-xs font-normal text-muted">{dict.form.optional}</span>}
       </label>
 
       <div className="relative">
         {def.type === 'select' ? (
           <select {...shared} className={`${shared.className} appearance-none pr-11`}>
-            <option value="">Please choose…</option>
-            {def.options?.map((option) => (
+            <option value="">{dict.form.choose}</option>
+            {optionValues?.map((option) => (
               <option key={option} value={option}>
-                {option}
+                {optionLabels?.[option] ?? option}
               </option>
             ))}
           </select>
@@ -92,7 +109,7 @@ export function Field({ def }: { def: FieldDef }) {
             {...shared}
             rows={3}
             maxLength={def.maxLength}
-            placeholder={def.placeholder}
+            placeholder={copy.placeholder || undefined}
             autoComplete={def.autoComplete}
             className={`${shared.className} resize-y`}
           />
@@ -103,7 +120,7 @@ export function Field({ def }: { def: FieldDef }) {
             list={listId}
             inputMode={def.inputMode}
             maxLength={def.maxLength}
-            placeholder={def.placeholder}
+            placeholder={copy.placeholder || undefined}
             autoComplete={def.autoComplete}
             className={`${shared.className} ${valid ? 'pr-11' : ''}`}
           />
@@ -116,7 +133,13 @@ export function Field({ def }: { def: FieldDef }) {
             fill="none"
             aria-hidden="true"
           >
-            <path d="M3.5 6L8 10.5 12.5 6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="stroke-brand" />
+            <path
+              d="M3.5 6L8 10.5 12.5 6"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="stroke-brand"
+            />
           </svg>
         )}
 
@@ -132,22 +155,22 @@ export function Field({ def }: { def: FieldDef }) {
           half of a desktop pair pushes its input down and the two stop lining
           up; below, every control in a row starts at the same height. The
           aria-describedby link is unaffected by the visual order. */}
-      {def.hint && (
-        <p id={hintId} className="mt-1.5 text-xs leading-5 text-muted">
-          {def.hint}
+      {copy.hint && (
+        <p id={hintId} className="mt-1.5 text-xs text-muted">
+          {copy.hint}
         </p>
       )}
 
       {listId && (
         <datalist id={listId}>
-          {def.options?.map((option) => (
-            <option key={option} value={option} />
+          {optionValues?.map((option) => (
+            <option key={option} value={optionLabels?.[option] ?? option} />
           ))}
         </datalist>
       )}
 
       {error && (
-        <p id={errorId} role="alert" className="mt-1.5 flex gap-1.5 text-sm leading-5 text-state-error">
+        <p id={errorId} role="alert" className="mt-1.5 flex gap-1.5 text-sm text-state-error">
           <AlertIcon />
           <span>{error}</span>
         </p>

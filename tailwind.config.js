@@ -25,7 +25,23 @@ module.exports = {
         state: { ok: '#0F7B5A', warn: '#B4690E', error: '#C0392B' },
       },
       fontFamily: {
-        sans: ['var(--font-inter)', 'var(--font-noto-thai)', 'system-ui', 'sans-serif'],
+        sans: ['var(--font-anuphan)', 'system-ui', 'sans-serif'],
+      },
+      // Larger than Tailwind's defaults, with unitless line-heights well above
+      // them. Thai stacks a vowel and a tone mark above the base glyph, and at
+      // Tailwind's stock 1.25-1.5 those marks collide or clip. 1.75 on body copy
+      // clears them, and the extra size and air help elderly readers in both
+      // languages. Set here rather than as leading-* utilities so every piece of
+      // text gets it, including text nobody remembered to annotate.
+      fontSize: {
+        xs: ['0.8125rem', { lineHeight: '1.6' }],
+        sm: ['0.9375rem', { lineHeight: '1.7' }],
+        base: ['1.0625rem', { lineHeight: '1.75' }],
+        lg: ['1.1875rem', { lineHeight: '1.7' }],
+        xl: ['1.375rem', { lineHeight: '1.55' }],
+        '2xl': ['1.625rem', { lineHeight: '1.45' }],
+        '3xl': ['2rem', { lineHeight: '1.35' }],
+        '4xl': ['2.5rem', { lineHeight: '1.25' }],
       },
       boxShadow: {
         card: '0 8px 32px -12px rgba(0, 27, 82, 0.18)',

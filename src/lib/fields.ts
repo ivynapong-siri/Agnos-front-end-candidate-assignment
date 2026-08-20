@@ -1,6 +1,9 @@
+import type { Dictionary } from '@/i18n'
 import {
+  ADDRESS_MAX_LENGTH,
   GENDERS,
   LANGUAGES,
+  MAX_NAME_LENGTH,
   NATIONALITIES,
   RELATIONSHIPS,
   RELIGIONS,
@@ -11,25 +14,36 @@ import {
  * One manifest, three consumers: the patient form inputs, the staff view rows,
  * and the progress calculation. Thirteen fields x three places is thirty-nine
  * hand-written declarations that drift; this is one list that cannot.
+ *
+ * Structure only — no copy. Labels, hints and placeholders live in the
+ * dictionary keyed by field name, so the manifest is language-agnostic.
  */
 
 export type FieldName = keyof PatientForm
 
 export type SectionId = 'personal' | 'contact' | 'background'
 
+/** Canonical values per option group; the dictionary supplies their labels. */
+export const OPTION_VALUES = {
+  gender: GENDERS,
+  language: LANGUAGES,
+  religion: RELIGIONS,
+  relationship: RELATIONSHIPS,
+  nationality: NATIONALITIES,
+} as const
+
+export type OptionsKey = keyof typeof OPTION_VALUES
+
 export type FieldDef = {
   name: FieldName
-  label: string
   section: SectionId
   type: 'text' | 'tel' | 'email' | 'date' | 'select' | 'textarea' | 'combo'
   required: boolean
   /** Native autofill token — IxDF "make form filling faster with autofill". */
   autoComplete?: string
   inputMode?: 'text' | 'tel' | 'email' | 'numeric'
-  placeholder?: string
-  /** Format or purpose hint shown under the label, before any error. */
-  hint?: string
-  options?: readonly string[]
+  /** Which option group supplies this field's values and translated labels. */
+  optionsKey?: OptionsKey
   maxLength?: number
   /**
    * Desktop column span out of six. Always full width on mobile, so the form
@@ -40,178 +54,31 @@ export type FieldDef = {
   span?: 'full' | 'half' | 'third'
 }
 
-export const SECTIONS: readonly { id: SectionId; title: string; blurb: string }[] = [
-  {
-    id: 'personal',
-    title: 'Who you are',
-    blurb: 'Your name and date of birth, exactly as they appear on your ID or passport.',
-  },
-  {
-    id: 'contact',
-    title: 'How we reach you',
-    blurb: 'We use these to confirm your appointment and send your results — nothing else.',
-  },
-  {
-    id: 'background',
-    title: 'A few last details',
-    blurb:
-      'These help us care for you well. Anything marked optional can be left blank if you would rather not share it.',
-  },
-]
+export const SECTION_IDS: readonly SectionId[] = ['personal', 'contact', 'background']
 
 // Ordered simple -> complex -> sensitive, per IxDF "arrange questions wisely".
 export const FIELDS: readonly FieldDef[] = [
-  {
-    name: 'firstName',
-    label: 'First name',
-    section: 'personal',
-    type: 'text',
-    required: true,
-    autoComplete: 'given-name',
-    placeholder: 'Somchai',
-    maxLength: 60,
-    span: 'third',
-  },
-  {
-    name: 'middleName',
-    label: 'Middle name',
-    section: 'personal',
-    type: 'text',
-    required: false,
-    autoComplete: 'additional-name',
-    maxLength: 60,
-    span: 'third',
-  },
-  {
-    name: 'lastName',
-    label: 'Last name',
-    section: 'personal',
-    type: 'text',
-    required: true,
-    autoComplete: 'family-name',
-    placeholder: 'Jaidee',
-    maxLength: 60,
-    span: 'third',
-  },
-  {
-    name: 'dateOfBirth',
-    label: 'Date of birth',
-    section: 'personal',
-    type: 'date',
-    required: true,
-    autoComplete: 'bday',
-    hint: 'Year, month, day',
-    span: 'half',
-  },
-  {
-    name: 'gender',
-    label: 'Gender',
-    section: 'personal',
-    type: 'select',
-    required: true,
-    autoComplete: 'sex',
-    options: GENDERS,
-    span: 'half',
-  },
+  { name: 'firstName', section: 'personal', type: 'text', required: true, autoComplete: 'given-name', maxLength: MAX_NAME_LENGTH, span: 'third' },
+  { name: 'middleName', section: 'personal', type: 'text', required: false, autoComplete: 'additional-name', maxLength: MAX_NAME_LENGTH, span: 'third' },
+  { name: 'lastName', section: 'personal', type: 'text', required: true, autoComplete: 'family-name', maxLength: MAX_NAME_LENGTH, span: 'third' },
+  { name: 'dateOfBirth', section: 'personal', type: 'date', required: true, autoComplete: 'bday', span: 'half' },
+  { name: 'gender', section: 'personal', type: 'select', required: true, optionsKey: 'gender', span: 'half' },
 
-  {
-    name: 'phone',
-    label: 'Phone number',
-    section: 'contact',
-    type: 'tel',
-    required: true,
-    autoComplete: 'tel',
-    inputMode: 'tel',
-    placeholder: '081 234 5678',
-    hint: 'Mobile preferred, so we can send you a reminder',
-    span: 'half',
-  },
-  {
-    name: 'email',
-    label: 'Email address',
-    section: 'contact',
-    type: 'email',
-    required: true,
-    autoComplete: 'email',
-    inputMode: 'email',
-    placeholder: 'somchai@example.com',
-    span: 'half',
-  },
-  {
-    name: 'address',
-    label: 'Home address',
-    section: 'contact',
-    type: 'textarea',
-    required: true,
-    autoComplete: 'street-address',
-    placeholder: '99/1 Sukhumvit Road, Khlong Toei, Bangkok 10110',
-    hint: 'Street, district, city and postal code',
-    maxLength: 300,
-  },
+  { name: 'phone', section: 'contact', type: 'tel', required: true, autoComplete: 'tel', inputMode: 'tel', span: 'half' },
+  { name: 'email', section: 'contact', type: 'email', required: true, autoComplete: 'email', inputMode: 'email', span: 'half' },
+  { name: 'address', section: 'contact', type: 'textarea', required: true, autoComplete: 'street-address', maxLength: ADDRESS_MAX_LENGTH },
 
-  {
-    name: 'preferredLanguage',
-    label: 'Preferred language',
-    section: 'background',
-    type: 'select',
-    required: true,
-    options: LANGUAGES,
-    hint: 'The language you would like us to speak and write in',
-    span: 'half',
-  },
-  {
-    name: 'nationality',
-    label: 'Nationality',
-    section: 'background',
-    type: 'combo',
-    required: true,
-    autoComplete: 'country-name',
-    options: NATIONALITIES,
-    placeholder: 'Thai',
-    hint: 'Start typing, or pick from the list',
-    maxLength: 60,
-    span: 'half',
-  },
-  {
-    name: 'religion',
-    label: 'Religion',
-    section: 'background',
-    type: 'select',
-    required: false,
-    options: RELIGIONS,
-    hint: 'Only so we can respect your dietary and care preferences',
-  },
-  {
-    name: 'emergencyContactName',
-    label: 'Emergency contact name',
-    section: 'background',
-    type: 'text',
-    required: false,
-    autoComplete: 'off',
-    placeholder: 'Malee Jaidee',
-    maxLength: 60,
-    span: 'half',
-  },
-  {
-    name: 'emergencyContactRelationship',
-    label: 'Relationship to you',
-    section: 'background',
-    type: 'select',
-    required: false,
-    options: RELATIONSHIPS,
-    span: 'half',
-  },
+  { name: 'preferredLanguage', section: 'background', type: 'select', required: true, optionsKey: 'language', span: 'half' },
+  { name: 'nationality', section: 'background', type: 'combo', required: true, autoComplete: 'country-name', optionsKey: 'nationality', maxLength: MAX_NAME_LENGTH, span: 'half' },
+  { name: 'religion', section: 'background', type: 'select', required: false, optionsKey: 'religion' },
+  { name: 'emergencyContactName', section: 'background', type: 'text', required: false, autoComplete: 'off', maxLength: MAX_NAME_LENGTH, span: 'half' },
+  { name: 'emergencyContactRelationship', section: 'background', type: 'select', required: false, optionsKey: 'relationship', span: 'half' },
 ]
 
-export const FIELDS_BY_SECTION = SECTIONS.map((section) => ({
-  ...section,
-  fields: FIELDS.filter((field) => field.section === section.id),
+export const FIELDS_BY_SECTION = SECTION_IDS.map((id) => ({
+  id,
+  fields: FIELDS.filter((field) => field.section === id),
 }))
-
-export const FIELD_LABELS = Object.fromEntries(FIELDS.map((f) => [f.name, f.label])) as Record<
-  FieldName,
-  string
->
 
 export const REQUIRED_FIELDS = FIELDS.filter((f) => f.required).map((f) => f.name)
 
@@ -220,6 +87,16 @@ export const EMPTY_FORM = Object.fromEntries(FIELDS.map((f) => [f.name, ''])) as
 /** Required fields the patient has actually answered — drives the progress bar. */
 export function countFilled(values: Partial<PatientForm>): number {
   return REQUIRED_FIELDS.filter((name) => (values[name] ?? '').trim() !== '').length
+}
+
+/**
+ * Canonical stored values are English; show the reader their own language.
+ * Nationality is free text, so an unmatched value is simply what was typed.
+ */
+export function displayValue(field: FieldDef, value: string, dict: Dictionary): string {
+  if (!field.optionsKey || value === '') return value
+  const labels: Record<string, string> = dict.form.options[field.optionsKey]
+  return labels[value] ?? value
 }
 
 /** Desktop column spans for the six-column form grid. */

@@ -1,8 +1,13 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { patientSchema } from './schema'
+import { makePatientSchema } from './schema'
 import { EMPTY_FORM, countFilled } from './fields'
 import { deriveStatus, type StaffSession } from './realtime'
+import en from '../i18n/en'
+
+// Asserted against the English messages; th.ts is checked for shape parity in
+// i18n.test.ts, so a missing Thai message cannot slip through either.
+const patientSchema = makePatientSchema(en.validation, en.form.fields)
 
 const VALID = {
   firstName: 'Somchai',
@@ -24,7 +29,8 @@ const VALID = {
 function errorFor(input: Record<string, string>, field: string) {
   const result = patientSchema.safeParse(input)
   if (result.success) return undefined
-  return result.error.issues.find((issue) => issue.path[0] === field)?.message
+  return result.error.issues.find((issue: { path: (string | number | symbol)[] }) => issue.path[0] === field)
+    ?.message
 }
 
 test('a complete form is accepted and trimmed', () => {

@@ -9,55 +9,75 @@ project structure, design, component architecture, real-time synchronisation flo
 
 ```
 agnos-intake/
-├── tailwind.config.js         Palette → semantic tokens. The only place a hex appears.
+├── tailwind.config.js         Palette → semantic tokens, plus the type scale.
+├── next.config.ts             Redirects bare "/" to the default language.
 ├── .env.example               The two public Supabase values, documented.
 │
+├── src/i18n/                  Copy, and only copy.
+│   ├── config.ts              Locales, default, self-named language labels.
+│   ├── en.ts                  English — and the source of the Dictionary type.
+│   ├── th.ts                  Thai, typed as Dictionary.
+│   └── index.ts               getDictionary, fill(), plural().
+│
 ├── src/lib/                   Everything that is not a React component.
-│   ├── schema.ts              Zod schema + the option lists. Validation truth.
-│   ├── fields.ts              The field manifest. Presentation truth.
-│   ├── realtime.ts            Supabase channel, presence hooks, status derivation.
+│   ├── schema.ts              Zod factory + canonical option values.
+│   ├── fields.ts              The field manifest. Structure, no copy.
+│   ├── realtime.ts            Supabase channel, presence hooks, status rules.
+│   ├── export.ts              Excel-safe CSV.
 │   ├── schema.test.ts         Validation rules.
-│   └── presence.test.ts       The presence-merge reducer.
+│   ├── presence.test.ts       The presence-merge reducer.
+│   ├── export.test.ts         CSV escaping, injection, Thai, columns.
+│   └── i18n.test.ts           Dictionary parity and completeness.
 │
 ├── src/components/
-│   ├── IntakeForm.tsx         The patient form: state, submit, progress, receipt.
+│   ├── IntakeForm.tsx         The patient form: state, submit, progress, draft.
 │   ├── Field.tsx              One control renderer for all seven input shapes.
-│   ├── StaffBoard.tsx         The dashboard: subscription, filters, layout.
+│   ├── StaffBoard.tsx         The dashboard: subscription, filters, export.
 │   ├── SessionCard.tsx        One patient, live.
 │   ├── StatusBadge.tsx        The five presence states, as a lookup table.
+│   ├── LanguageToggle.tsx     Swaps the first path segment.
 │   ├── LiveIndicator.tsx      Connection pill + the missing-credentials notice.
 │   ├── Logo.tsx               The Agnos wordmark, inlined.
 │   └── Art.tsx                Every illustration and icon.
 │
 └── src/app/
-    ├── layout.tsx             Fonts, metadata, background wash, header.
     ├── globals.css            Tailwind layers, native-control fixes, reduced motion.
-    ├── page.tsx               Landing: patient or staff.
-    ├── patient/page.tsx       Thin shell around IntakeForm.
-    └── staff/page.tsx         Thin shell around StaffBoard.
+    └── [locale]/
+        ├── layout.tsx         The root layout. Font, metadata, header, wash.
+        ├── page.tsx           Landing: patient or staff.
+        ├── patient/page.tsx   Thin shell around IntakeForm.
+        └── staff/page.tsx     Thin shell around StaffBoard.
 ```
 
 ### Why it is split this way
 
-**`lib/` holds no JSX.** Validation, the field list, the transport and the status
-rules are all testable without a renderer, which is why `npm test` needs no DOM, no
-test framework and no mocking library.
+**`lib/` holds no JSX.** Validation, the field list, the transport, the status rules
+and the CSV writer are all testable without a renderer, which is why `npm test` needs
+no DOM, no test framework and no mocking library.
 
-**Two sources of truth, deliberately separate.** `schema.ts` owns *what is valid*;
-`fields.ts` owns *how it is presented*. They meet at one point: `fields.ts` imports the
-option arrays from `schema.ts`, so a select's `<option>` list and the enum it is
-validated against can never disagree. The dependency runs one way only — the schema
-never imports presentation.
+**Three sources of truth, deliberately separate.** `schema.ts` owns *what is valid*,
+`fields.ts` owns *how it is laid out*, and `i18n/` owns *what it says*. The
+dependencies run one way: `fields.ts` imports the canonical option values from
+`schema.ts` so a `<option>` list and the enum it is validated against cannot disagree,
+and both read labels from the dictionary. Nothing in `i18n/` knows about fields or
+schemas.
 
 **The field manifest is the one abstraction in the project.** Thirteen fields are
 consumed three times: as inputs on the patient form, as rows on every staff card, and
-as the denominator of the progress bar. Hand-written, that is thirty-nine declarations
-that drift apart the first time someone adds a field. As a manifest it is one list, and
-adding a field is a data change rather than a JSX change. Nothing else here is
-abstracted — there is no generic `<Form>`, no field factory, no config layer.
+as the denominator of the progress bar — now also as CSV columns. Hand-written, that is
+thirty-nine declarations that drift apart the first time someone adds a field. As a
+manifest holding structure only, adding a field is a data change and adding a language
+touches no JSX at all. Nothing else here is abstracted — there is no generic `<Form>`,
+no field factory, no config layer.
 
-**Route files are shells.** Each page is a `<main>` with one component inside, so the
-interesting code is never buried in a route.
+**There is no `app/layout.tsx`.** `app/[locale]/layout.tsx` *is* the root layout,
+because `<html lang>` cannot be written before the language is known. That is also why
+the locale is a route segment rather than a client-side toggle: the server renders the
+correct language in the first byte of HTML, so there is no flash of the wrong language
+and nothing for hydration to disagree about.
+
+**Route files are shells.** Each page resolves `params`, loads a dictionary and renders
+one component, so the interesting code is never buried in a route.
 
 ---
 
@@ -87,14 +107,42 @@ separate `state.*` key and commented as an addition in `tailwind.config.js` so n
 mistakes them for brand colours. They are also never the only signal: every status
 carries its label as text, and every error carries an icon and a message.
 
+### Type, and why the line-heights are unusual
+
+One typeface for both scripts: **Anuphan**, a variable Thai/Latin family. Using a
+Thai-first face for the Latin text too means the two share metrics — the alternative,
+a Latin face with a Thai fallback, gives you two fonts of visibly different apparent
+size sitting in the same paragraph.
+
+The type scale is overridden wholesale rather than adjusted per element:
+
+| Size | Value | Line-height |
+| --- | --- | --- |
+| `xs` | 13px | 1.6 |
+| `sm` | 15px | 1.7 |
+| `base` | 17px | 1.75 |
+| `lg` | 19px | 1.7 |
+| `2xl` | 26px | 1.45 |
+| `4xl` | 40px | 1.25 |
+
+Two reasons. Thai stacks a vowel *and* a tone mark above the base glyph — `เ-ื่-อ` is
+three levels tall — and Tailwind's stock 1.25–1.5 line-heights make those marks collide
+with the line above or clip outright. And the readers here skew elderly, so a larger
+base size with more air is the single highest-value accessibility change available.
+
+Setting it on the `fontSize` scale rather than sprinkling `leading-*` utilities matters:
+every piece of text inherits it, including text nobody remembered to annotate. The
+explicit `leading-*` classes were removed from the components once the scale carried
+them, which also shortened the markup.
+
 ### Illustrative direction
 
 The brief asked for an illustrative UI. Rather than pull in an illustration set, every
 graphic is built from the logo's own geometry — a square rotated 45° with rounded
 corners, which is exactly the shape in `agnos-health.svg`. That one `<Mark>` primitive
 appears in the hero, the landing cards, the empty state and the confirmation screen, so
-the artwork is recognisably the same family as the logo without anyone drawing a
-second style.
+the artwork is recognisably the same family as the logo without anyone drawing a second
+style.
 
 Everything else is restraint: `rounded-3xl` cards on a `paper` ground, a single soft
 shadow (`0 8px 32px -12px rgba(0,27,82,.18)`) with a lifted variant on hover, two
@@ -102,10 +150,6 @@ blurred CSS circles for the background wash, and generous whitespace between the
 sections. Movement is limited to a breathing dot on live indicators, a 1.4 s flash on
 changed fields, and a short rise on entry — and `prefers-reduced-motion` switches all
 of it off, because none of it carries meaning.
-
-Type is Inter, with Noto Sans Thai loaded behind it. The UI copy is English; the Thai
-face is there so a patient typing their own name in Thai gets correct glyphs and line
-height rather than a fallback.
 
 ### Responsive behaviour
 
@@ -125,9 +169,9 @@ and pairing is used *only* where two inputs read as one question:
 | Emergency contact name / relationship | 3 + 3 |
 
 Helper text sits *below* the control rather than above it. Above, a hint on one half of
-a pair pushes its input down and the two visibly stop lining up; below, every control
-in a row starts at the same height whatever the hints say. `aria-describedby` is
-unaffected by visual order.
+a pair pushes its input down and the two visibly stop lining up — this was a real bug,
+caught by measuring the rendered rows. Below, every control in a row starts at the same
+height whatever the hints say. `aria-describedby` is unaffected by visual order.
 
 The progress bar and connection status are sticky to the top of the form, bleeding to
 the container edge with a negative margin so they read as a bar rather than a floating
@@ -140,12 +184,13 @@ native `<details open>`, so staff can collapse patients they are not dealing wit
 small screen without a line of state management. Field rows stack label-over-value on
 mobile and go label-beside-value at `sm`.
 
-The header wraps rather than truncates: title, connection pill and the
+The header wraps rather than truncates: title, connection pill, export button and the
 open-a-patient-form link reflow onto separate lines on a narrow screen, and the filter
 chips wrap beneath.
 
-**Touch.** Every control is at least 48 px tall and the submit button spans the full
-width on mobile, narrowing to its content at `sm`.
+**Touch.** Every interactive control clears 44 px. The two that did not — the language
+links and the filter chips — were caught by measuring them, and needed
+`inline-flex` before `min-h-11` had any effect on an inline element.
 
 ### Form design decisions, against the IxDF guidance
 
@@ -163,7 +208,7 @@ width on mobile, narrowing to its content at `sm`.
 | Feedback on submission | A receipt with a reference code and what happens next |
 | Communicate privacy | The privacy line sits immediately above the submit button, where the decision is made |
 | Whitespace and contrast | Verified: 12.6:1 body copy, 4.5:1 minimum everywhere |
-| Touch-friendly inputs | 48 px minimum |
+| Touch-friendly inputs | 44 px minimum, measured |
 
 Marking is inverted from the common default: **optional fields are labelled, required
 ones are not.** On a form where nine of thirteen answers are required, a wall of
@@ -172,49 +217,87 @@ asterisks tells the patient nothing.
 Deliberately skipped: a multi-step wizard (thirteen fields does not warrant one — the
 progress bar covers the intent), CAPTCHA, voice input, and gamification.
 
+### Bilingual design
+
+**The language is in the URL.** `/th/patient`, `/en/staff`. This costs a route
+restructure and buys four things a client-side toggle cannot: correct language in the
+server-rendered HTML, a correct `<html lang>` for screen readers, a shareable link in a
+chosen language, and no hydration mismatch. Thai is the default; `/` redirects to
+`/th`.
+
+**Stored values stay English.** A patient who picks `ชาย` has `gender: "Male"` in
+state. The dictionary supplies the label. Without that split, switching language
+mid-form would leave every chosen answer failing validation against the new language's
+option list.
+
+**Switching language keeps what was typed.** A locale change is a real navigation, so
+the form remounts and React state is gone. Values are mirrored into a `sessionStorage`
+draft on the same debounce that feeds the sync, and read back in the form's
+`defaultValues`. It also covers an accidental refresh. The draft is filtered on read to
+known field names with string values, so a hand-edited entry cannot inject keys into
+the form, and it is cleared on submit — same lifetime as the tab, which is what the
+privacy note promises.
+
+**Translation completeness is a test, not a habit.** `th.ts` is typed as
+`Dictionary = typeof en`, so a missing key fails the build. `i18n.test.ts` covers what
+the type cannot: identical key sets in both directions, no string left as an empty
+stub, every `{token}` in a template being one a caller actually fills, and every
+selectable option having a label in both languages — plus the reverse, catching labels
+left behind for values that no longer exist.
+
+There is no i18n library. With two languages, no date or currency formatting to do and
+one plural rule, `fill()` is four lines and `plural()` is two.
+
 ---
 
 ## 3. Component architecture
 
 ### Patient side
 
-**`IntakeForm`** — owns the form. Creates the React Hook Form instance with the Zod
-resolver, holds the session id and the submitted receipt, and renders the three
-sections from the manifest. On submit it publishes presence directly rather than
-waiting on the debounce, because the component that owns the debounce unmounts on the
-very next render.
+**`IntakeForm`** — owns the form. Builds the Zod schema per language (memoised on the
+dictionary, because every message the patient reads has to be in theirs), holds the
+session id and the submitted receipt, and renders the three sections from the manifest.
+On submit it publishes presence directly rather than waiting on the debounce, because
+the component that owns the debounce unmounts on the very next render.
 
 **`LiveMirror`** — the only component subscribed to every field. Keeping the
 `useWatch` here means a keystroke re-renders thirty lines instead of the whole form
-tree, and it puts the progress bar and the outbound sync on one subscription: both
-want exactly "the current values", so they share it.
+tree, and it puts the progress bar, the outbound sync and the draft on one
+subscription: all three want exactly "the current values", so they share it.
 
-**`Field`** — renders all seven input shapes from a manifest entry, and is the single
-place the accessibility contract can be enforced: a real `<label for>`, `aria-invalid`,
-`aria-describedby` wiring hint and error, `role="alert"` on the message, a green tick
-on a valid touched field.
+**`Field`** — renders all seven input shapes from a manifest entry plus a dictionary
+entry, and is the single place the accessibility contract can be enforced: a real
+`<label for>`, `aria-invalid`, `aria-describedby` wiring hint and error, `role="alert"`
+on the message, a green tick on a valid touched field.
 
 **`ErrorSummary`** — silent until `submitCount > 0`, then lists the failing fields as
 buttons that move focus. Ordered by the manifest, not by the error object's key order,
 so the list matches the form.
 
 **`ThankYou`** — the receipt. Renders only the answered fields, so a blank middle name
-does not appear as an empty row.
+does not appear as an empty row, and translates option values for display.
 
 ### Staff side
 
 **`StaffBoard`** — subscribes, ticks a one-second clock, derives each session's status,
-and lays out the grid. The status counters are also the filter control: one piece of UI
-instead of a legend plus a dropdown.
+lays out the grid, and exports. The status counters are also the filter control, and the
+export button exports whatever that filter is showing — so "submitted only" needs no
+second control.
 
 **`SessionCard`** — one patient. Entirely derived, with no state and no timer of its
 own: the changed-field list arrives with the update, and the board's clock is what
 makes the highlight expire.
 
-**`StatusBadge`** — the five states as a lookup table: label, chip colour, dot colour,
-whether it pulses, and a tooltip naming the threshold. Adding a state is a table row.
+**`StatusBadge`** — the five states as a lookup table of styles, with labels and
+threshold tooltips coming from the dictionary and the thresholds interpolated from the
+constants so the copy cannot drift. Adding a state is a table row.
 
 ### Shared
+
+**`LanguageToggle`** — swaps the first path segment and keeps the rest, so the visitor
+stays on the page they were reading. Plain links, not a router push: the URL *is* the
+language, so the choice should be shareable, bookmarkable and reachable with the back
+button.
 
 **`LiveIndicator`** / **`SetupNotice`** — connection state, and the explanation shown
 when credentials are missing so a keyless checkout is never a silently dead page.
@@ -228,8 +311,9 @@ fixed here.
 ### What was deliberately not built
 
 No design-system package, no `<Button>` or `<Card>` wrapper used once, no state
-management library, no context beyond React Hook Form's own `FormProvider`, no API
-routes, and no server. The app is four static routes and one WebSocket.
+management library, no context beyond React Hook Form's own `FormProvider`, no i18n
+runtime, no CSV library, no API routes, and no server. The app is nine prerendered
+routes and one WebSocket.
 
 ---
 
@@ -245,7 +329,8 @@ socket has to be someone else's. Of the managed options:
   batch would have to pass through a serverless function holding a secret. More code
   and a slower path.
 - **Supabase Realtime** — the browser publishes directly with the anon key. No server
-  code at all.
+  code at all, and it is a real WebSocket (`wss://…/realtime/v1/websocket`), so it
+  satisfies the brief even read strictly.
 
 Within Supabase there was a second choice, **Broadcast vs Presence**, and Presence
 wins because it already solves three problems Broadcast would leave for us:
@@ -269,6 +354,8 @@ keystroke
    ▼
 useWatch (RHF)  ── all 13 values
    │
+   ├──▶ sessionStorage draft   (survives a language switch or refresh)
+   │
    ▼
 250 ms trailing debounce            ~4 msg/s, cap is 10
    │
@@ -282,24 +369,24 @@ channel.track({ sessionId, data,
                                                       ▼
                                              mergePresence(seen, state, now)
                                                       │
-                                        ┌─────────────┴─────────────┐
-                                        │ diff vs previous → changed│
+                                        ┌─────────────┴──────────────┐
+                                        │ diff vs previous → changed │
                                         │ dirty? → stamp lastChangeAt│
                                         │ absent? → online = false   │
                                         │ never delete a row         │
-                                        └─────────────┬─────────────┘
+                                        └─────────────┬──────────────┘
                                                       ▼
                                              1 s tick → deriveStatus()
                                                       │
                                                       ▼
-                                             SessionCard × N
+                                          SessionCard × N  ·  CSV export
 ```
 
 **Identity.** Each patient tab generates a `crypto.randomUUID()` and keeps it in
 `sessionStorage`, used as the presence key. `sessionStorage` rather than
 `localStorage`: a refresh keeps the same identity so staff never sees a duplicate
 appear, while a second tab is genuinely a second patient. The first eight characters,
-uppercased, become the patient-facing reference code.
+uppercased, become the patient-facing reference code and the CSV's reference column.
 
 **Debounce.** A 250 ms trailing debounce on the patient side. Imperceptible to staff,
 and it holds the channel at roughly four messages a second against Supabase's cap of
@@ -351,9 +438,7 @@ no-op sync not resetting the clock, one patient not clobbering another's highlig
 going offline without deletion, a submission surviving tab close, submission counting
 as activity, non-patient entries being ignored, and a rejoin reusing its own row.
 
-`schema.test.ts` covers the validation rules: required fields, Unicode names, phone
-shapes, email, date-of-birth bounds, closed choice sets, the emergency-contact pairing
-rule, and the progress count.
-
-Both run on `node:test` through `tsx` — twenty-one tests, no framework, no fixtures,
-no mocks.
+Alongside it: `schema.test.ts` for the validation rules, `export.test.ts` for CSV
+escaping, formula injection, the BOM and the localised columns, and `i18n.test.ts` for
+dictionary parity. Thirty-nine tests on `node:test` through `tsx` — no framework, no
+fixtures, no mocks.
