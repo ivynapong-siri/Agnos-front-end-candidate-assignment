@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { formatLongDate, fromIsoDate, monthGrid, monthNames, toIsoDate, weekdayNames } from './calendar'
+import en from '../i18n/en'
+import th from '../i18n/th'
 import { isOutOfView } from './anchor'
 import { CENTRE, ORBIT, orbitFrames, radiusAt, restingPosition } from './orbit'
 import { COUNTRIES, composePhone, flagFor, parsePhone } from './phone'
@@ -60,15 +62,18 @@ test('month and weekday names come out localised and grid-sized', () => {
   assert.equal(monthNames('en')[0], 'January')
   assert.equal(monthNames('th')[0], 'มกราคม')
 
-  for (const locale of ['en', 'th'] as const) {
-    const days = weekdayNames(locale)
+  // From the dictionary, not Intl: the previous version derived these and the
+  // result differed between Node and the browser, which broke hydration. This
+  // asserts the labels are short enough for a seven-column grid — and being
+  // fixed strings, it now asserts the same thing everywhere.
+  for (const [name, dict] of [['en', en], ['th', th]] as const) {
+    const days = weekdayNames(dict)
     assert.equal(days.length, 7)
-    // The whole point of the narrow fallback: Thai "short" is อาทิตย์, which
-    // would blow out a seven-column grid.
     assert.ok(
       days.every((day) => day.length <= 3),
-      `${locale} weekday labels fit a column: ${days.join(',')}`,
+      `${name} weekday labels fit a column: ${days.join(',')}`,
     )
+    assert.equal(new Set(days).size >= 6, true, `${name} labels are distinguishable`)
   }
 })
 

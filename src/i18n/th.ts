@@ -241,6 +241,7 @@ const th: Dictionary = {
     prevMonth: 'เดือนก่อนหน้า',
     nextMonth: 'เดือนถัดไป',
     clear: 'ล้างค่า',
+    weekdays: ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'],
   },
 
   contact: {

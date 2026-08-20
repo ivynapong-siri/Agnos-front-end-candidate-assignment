@@ -43,7 +43,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
           className="pointer-events-none -z-10 hidden select-none object-cover object-right lg:block"
         />
 
-        <div className="mx-auto grid w-full max-w-6xl flex-1 content-center gap-x-10 gap-y-8 px-4 py-10 sm:px-6 lg:grid-cols-2 lg:px-8">
+        <div className="mx-auto grid w-full max-w-7xl flex-1 content-center gap-x-10 gap-y-8 px-4 py-10 sm:px-6 lg:grid-cols-2">
           <div className="max-w-md lg:col-start-1 lg:row-start-1">
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-brand">{dict.landing.eyebrow}</p>
             <h1 className="mt-3 text-3xl font-bold text-navy-900 sm:text-4xl">{dict.landing.heading}</h1>
@@ -71,7 +71,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
 
         {/* Inside the section, floating on the artwork rather than pushing it
             up to make room. */}
-        <p className="mx-auto w-full max-w-6xl px-6 pb-8 text-center text-xs text-muted">
+        <p className="mx-auto w-full max-w-7xl px-4 pb-8 text-center text-xs text-muted sm:px-6">
           {dict.landing.footnote}
         </p>
       </section>

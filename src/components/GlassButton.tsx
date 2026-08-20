@@ -32,7 +32,9 @@ const button = cva('glass-btn', {
       ghost: 'glass-tone-ghost',
     },
     size: {
-      sm: 'min-h-9 px-4 text-sm font-semibold',
+      // min-h-11, not min-h-9: 44px is the touch floor. Only the hit area
+      // grows — the padding and type stay small.
+      sm: 'min-h-11 px-4 text-sm font-semibold',
       default: 'min-h-12 px-6 text-base font-bold',
       lg: 'min-h-14 px-8 text-lg font-bold',
       icon: 'h-11 w-11',

@@ -109,7 +109,7 @@ export function DateField({
     })
 
   const months = monthNames(locale)
-  const weekdays = weekdayNames(locale)
+  const weekdays = weekdayNames(dict)
   // Newest first: a patient scrolls back to their birth year, not forward.
   const years = Array.from({ length: maxAge + 1 }, (_, index) => today.getFullYear() - index)
 

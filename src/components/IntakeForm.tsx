@@ -236,11 +236,22 @@ export function IntakeForm({ dict, locale }: { dict: Dictionary; locale: Locale 
 
   const methods = useForm<PatientForm>({
     resolver: zodResolver(schema),
-    defaultValues: typeof window === 'undefined' ? EMPTY_FORM : readDraft(),
+    // Always empty here, never readDraft(): reading it during render gave the
+    // client different values from the server and hydration failed on them.
+    // The draft is applied just below, after mount.
+    defaultValues: EMPTY_FORM,
     // IxDF inline validation: first check on blur, then live once touched, so
     // nobody is told they are wrong halfway through typing their own name.
     mode: 'onTouched',
   })
+
+  // Restores a draft after hydration. reset() is an imperative form call, not a
+  // React state update, so this stays out of the render path entirely.
+  const { reset } = methods
+  useEffect(() => {
+    const draft = readDraft()
+    if (FIELDS.some((field) => draft[field.name] !== '')) reset(draft, { keepDefaultValues: true })
+  }, [reset])
 
   const onSubmit = methods.handleSubmit((values) => {
     // Published here rather than waiting on LiveMirror's debounce, which

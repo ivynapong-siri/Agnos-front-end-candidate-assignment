@@ -1,4 +1,4 @@
-import type { Locale } from '@/i18n'
+import type { Dictionary, Locale } from '@/i18n'
 
 /** A local calendar date as `YYYY-MM-DD`, which is what <input type="date"> means
  *  and what the schema validates. Never built via toISOString(), which would
@@ -48,19 +48,15 @@ export function monthNames(locale: Locale): string[] {
 /**
  * Sunday-first, matching the grid.
  *
- * Thai's "short" weekday is the whole word — อาทิตย์, not อา — which will not fit
- * a seven-column grid, so it falls back to "narrow". English keeps "short",
- * because narrow English gives two Ts and two Ss and reads as nonsense. The rule
- * is locale-agnostic: use short unless short is not actually short.
+ * These come from the dictionary rather than Intl on purpose. Deriving them at
+ * runtime made the output depend on which engine rendered: Node returns Thai
+ * "short" as "อา." while Chrome returns "อาทิตย์", so a heuristic picking
+ * between short and narrow chose differently on the server and the client, and
+ * hydration failed on the text. Seven strings per language is a small price for
+ * the same grid everywhere.
  */
-export function weekdayNames(locale: Locale): string[] {
-  // 2024-01-07 was a Sunday.
-  const build = (weekday: 'short' | 'narrow') => {
-    const format = formatter(locale, { weekday })
-    return Array.from({ length: 7 }, (_, day) => format.format(new Date(2024, 0, 7 + day)))
-  }
-  const short = build('short')
-  return short.some((name) => name.length > 3) ? build('narrow') : short
+export function weekdayNames(dict: Dictionary): string[] {
+  return dict.picker.weekdays
 }
 
 export function formatLongDate(value: string, locale: Locale): string {

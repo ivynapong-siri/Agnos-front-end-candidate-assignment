@@ -76,6 +76,10 @@ export function Listbox({
   const search = useRef<HTMLInputElement>(null)
 
   const [open, setOpen] = useState(false)
+  // Contents are not rendered until the panel has been opened once. Keeps
+  // engine-dependent text (country names come from Intl) out of the server
+  // HTML, where any divergence becomes a hydration failure.
+  const [everOpened, setEverOpened] = useState(false)
   const [query, setQuery] = useState('')
   const untrack = useRef<(() => void) | null>(null)
   const [active, setActive] = useState(0)
@@ -119,6 +123,7 @@ export function Listbox({
     if (!element || !trigger.current) return
     anchorPopover(element, trigger.current)
 
+    setEverOpened(true)
     setQuery('')
     setActive(Math.max(0, options.findIndex((option) => option.value === value)))
     element.showPopover()
@@ -209,7 +214,7 @@ export function Listbox({
         onKeyDown={onPanelKeyDown}
         className="listbox-panel border border-brand-wash bg-white shadow-lift"
       >
-        {searchable && (
+        {everOpened && searchable && (
           <div className="border-b border-brand-wash p-2">
             <input
               ref={search}
@@ -227,7 +232,8 @@ export function Listbox({
         )}
 
         <ul role="listbox" aria-labelledby={id} className="max-h-full overflow-y-auto overscroll-contain p-1.5">
-          {filtered.map((option, index) => {
+          {everOpened &&
+            filtered.map((option, index) => {
             const isSelected = option.value === value
             return (
               <li key={option.value} role="none">
@@ -254,11 +260,11 @@ export function Listbox({
                     </span>
                   )}
                 </button>
-              </li>
-            )
-          })}
+                </li>
+              )
+            })}
 
-          {filtered.length === 0 && (
+          {everOpened && filtered.length === 0 && (
             <li role="none" className="px-3 py-6 text-center text-sm text-muted">
               {allowCustom && query.trim() ? (
                 <button

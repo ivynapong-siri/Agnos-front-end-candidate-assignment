@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Anuphan } from 'next/font/google'
 import Link from 'next/link'
+import Script from 'next/script'
 import { ContactCard } from '@/components/ContactCard'
 import { LanguageToggle } from '@/components/LanguageToggle'
 import { PageTransition } from '@/components/PageTransition'
@@ -65,15 +66,18 @@ export default async function LocaleLayout({
   return (
     <html lang={locale} className={anuphan.variable}>
       <body>
-        {/* Applies the stored palette before the rest of the body paints, so a
-            high-contrast user never sees a flash of the default one. Inline and
-            blocking on purpose — a component cannot run early enough. */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html:
-              "try{if(localStorage.getItem('agnos.theme')==='high-contrast')document.documentElement.dataset.theme='high-contrast'}catch(e){}",
-          }}
-        />
+        {/*
+          Applies the stored palette before the page paints, so a high-contrast
+          user never sees a flash of the default one.
+
+          An external file, not an inline script: React 19 does not render a
+          script element's text children on the client, so inline code is in the
+          server HTML and gone after hydration — React reports that as a text
+          mismatch and hydration fails. Moving the code out of the element
+          removes the mismatched text entirely.
+        */}
+        <Script id="agnos-theme" src="/theme.js" strategy="beforeInteractive" />
+
         {/* Soft brand wash behind everything. Blurred CSS circles rather than
             SVG blobs: same look, nothing to maintain. */}
         <div aria-hidden="true" className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
@@ -90,7 +94,7 @@ export default async function LocaleLayout({
           <Link
             href={`/${locale}`}
             aria-label={dict.nav.home}
-            className="rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand"
+            className="inline-flex min-h-11 items-center rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand"
           >
             <Logo className="h-9 w-auto" />
           </Link>

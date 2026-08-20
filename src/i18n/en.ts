@@ -250,6 +250,7 @@ const en = {
     prevMonth: 'Previous month',
     nextMonth: 'Next month',
     clear: 'Clear',
+    weekdays: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
   },
 
   contact: {

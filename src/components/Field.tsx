@@ -86,6 +86,7 @@ export function Field({ def, dict, locale }: { def: FieldDef; dict: Dictionary; 
     use: dict.picker.useCustom,
   }
 
+  /** For the custom controls, which declare these as props. */
   const shared = {
     id: def.name,
     value,
@@ -94,6 +95,25 @@ export function Field({ def, dict, locale }: { def: FieldDef; dict: Dictionary; 
     invalid: Boolean(error),
     describedBy,
     required: def.required,
+  }
+
+  /**
+   * For native <input> and <textarea>. Deliberately not `shared`: invalid,
+   * describedBy and required are not DOM attributes, and spreading them onto a
+   * real element leaks them into the HTML and warns on every render.
+   */
+  const nativeProps = {
+    id: def.name,
+    name: fieldName,
+    value,
+    onChange: field.onChange,
+    onBlur: field.onBlur,
+    maxLength: def.maxLength,
+    placeholder: copy.placeholder || undefined,
+    autoComplete: def.autoComplete,
+    'aria-invalid': error ? true : undefined,
+    'aria-describedby': describedBy,
+    'aria-required': def.required || undefined,
   }
 
   return (
@@ -144,32 +164,18 @@ export function Field({ def, dict, locale }: { def: FieldDef; dict: Dictionary; 
           />
         ) : def.type === 'textarea' ? (
           <textarea
-            {...shared}
-            name={fieldName}
+            {...nativeProps}
             ref={registerRef}
             rows={3}
-            maxLength={def.maxLength}
-            placeholder={copy.placeholder || undefined}
-            autoComplete={def.autoComplete}
-            aria-invalid={error ? true : undefined}
-            aria-describedby={describedBy}
-            aria-required={def.required || undefined}
             className={`${INPUT} ${borderFor(Boolean(error), valid)} resize-y`}
           />
         ) : (
           <>
             <input
-              {...shared}
-              name={fieldName}
+              {...nativeProps}
               ref={registerRef}
               type={def.type}
               inputMode={def.inputMode}
-              maxLength={def.maxLength}
-              placeholder={copy.placeholder || undefined}
-              autoComplete={def.autoComplete}
-              aria-invalid={error ? true : undefined}
-              aria-describedby={describedBy}
-              aria-required={def.required || undefined}
               className={`${INPUT} ${borderFor(Boolean(error), valid)} ${valid ? 'pr-11' : ''}`}
             />
             {/* Positive inline feedback, not just error feedback. */}

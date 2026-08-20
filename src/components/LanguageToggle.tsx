@@ -23,7 +23,7 @@ export function LanguageToggle({ locale, dict }: { locale: Locale; dict: Diction
   return (
     <nav
       aria-label={dict.nav.languageLabel}
-      className="relative flex items-center gap-1 rounded-full bg-white/50 p-1 ring-1 ring-white/70 backdrop-blur-md"
+      className="glass-switch flex items-center gap-1 p-1"
     >
       {LOCALES.map((option) => {
         const active = option === locale
@@ -44,7 +44,7 @@ export function LanguageToggle({ locale, dict }: { locale: Locale; dict: Diction
                     ? { duration: 0 }
                     : { type: 'spring', stiffness: 420, damping: 34, mass: 0.7 }
                 }
-                className="absolute inset-0 rounded-full bg-brand"
+                className="glass-switch-pill absolute inset-0"
               />
             )}
             {/* Above the pill, and easing its own colour so the label turns

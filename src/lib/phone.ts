@@ -73,9 +73,15 @@ export function flagFor(iso2: string): string {
   return String.fromCodePoint(...[...iso2.toUpperCase()].map((c) => 0x1f1e6 + c.charCodeAt(0) - 65))
 }
 
+/**
+ * `style: 'short'` is not cosmetic. Node's ICU returns the full political name
+ * for Hong Kong — "Hong Kong SAR China" — while Chrome returns "Hong Kong", so
+ * the server and the client rendered different text and hydration failed on it.
+ * The short style agrees across both, and reads better anyway.
+ */
 export function countryName(iso2: string, locale: Locale): string {
   try {
-    return new Intl.DisplayNames([locale], { type: 'region' }).of(iso2) ?? iso2
+    return new Intl.DisplayNames([locale], { type: 'region', style: 'short' }).of(iso2) ?? iso2
   } catch {
     return iso2
   }
