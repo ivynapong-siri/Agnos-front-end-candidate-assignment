@@ -28,7 +28,8 @@ const en = {
     heading: 'Paperwork that the front desk can already see.',
     body: 'The patient fills in one form on their own phone. Every answer appears on the staff screen as it is typed — so nobody re-reads a clipboard, and nobody waits to find out a field was missed.',
     patientTitle: "I'm a patient",
-    patientBlurb: 'Fill in your details before you see the doctor. Takes about two minutes on a phone.',
+    patientBlurb:
+      'Fill in your details before you see the doctor — about two minutes on your own phone. Stop partway if you need to; it keeps what you have entered.',
     patientCta: 'Start the form',
     staffTitle: "I'm staff",
     staffBlurb: 'Watch every form fill in live, and see at a glance who has finished and who needs a hand.',
