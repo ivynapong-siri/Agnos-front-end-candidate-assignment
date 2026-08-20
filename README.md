@@ -4,6 +4,7 @@ A responsive, bilingual patient intake form whose every keystroke appears on a l
 front-desk dashboard. Built for the Agnos front-end candidate assignment.
 
 **Live demo — <https://agnos-intake-liart.vercel.app>**
+**Source — <https://github.com/ivynapong-siri/Agnos-front-end-candidate-assignment>**
 
 - **Patient form** — [`/th/patient`](https://agnos-intake-liart.vercel.app/th/patient) · thirteen fields, inline validation, works on a phone
 - **Front desk** — [`/th/staff`](https://agnos-intake-liart.vercel.app/th/staff) · every form filling in live, with presence status per patient
