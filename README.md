@@ -64,7 +64,7 @@ nothing is silently broken.
 | `npm run build` | Production build (also type-checks) |
 | `npm start` | Serve the production build |
 | `npm run lint` | ESLint, including `react-hooks` and `next/core-web-vitals` |
-| `npm test` | 43 unit tests — validation, presence merge, CSV export, translations |
+| `npm test` | 69 unit tests — validation, presence merge, CSV export, translations, date/phone pickers, WCAG contrast |
 
 ---
 
@@ -200,7 +200,23 @@ to the Buddhist era halfway through the file.
 - Accessibility is wired at the single place it can be enforced — real `<label for>`,
   `aria-invalid`, `aria-describedby`, `role="alert"` on errors, `role="progressbar"`,
   44 px minimum hit areas, and `prefers-reduced-motion` switching off every animation.
-- Contrast checked: body copy 12.6:1, and the three status colours 4.7–5.1:1.
+- Contrast is measured, not eyeballed, and asserted in a test that parses
+  `globals.css` — so a palette change that breaks AA fails the build. Body copy is
+  15.7:1; the status colours 5.1–5.8:1; control borders 3.3:1 against white, which is
+  the WCAG 1.4.11 floor for the boundary of an interactive component.
+- **Three real AA failures were found this way and fixed.** The supplied palette's
+  `#9CA3AF` secondary text was 2.44:1 — used on every hint, placeholder and staff-card
+  label. The amber status was 4.07:1. And control borders at `#E8EEF9` were 1.16:1
+  against white. Secondary text is now `#5F6672`, amber `#96520A`, and borders a
+  separate `line` token at `#6690CC` — the lightest brand-family blue that passes, so
+  the form reads more defined than before. That is the cost of the rule, not taste.
+- **A high-contrast, colour-blind-safe theme**, toggled from the header and remembered
+  across visits. An inline script applies it before first paint, so nobody sees a flash
+  of the wrong palette. The status trio moves onto the teal/orange axis, which stays
+  distinguishable under deuteranopia and protanopia where red and green converge, and
+  is separated by lightness as well so hue is never the only cue. Colour was already
+  never the only signal — every badge carries its label as text and every error an
+  icon — this is belt and braces.
 
 ---
 

@@ -235,6 +235,11 @@ const en = {
     back: 'Back to start',
   },
 
+  theme: {
+    label: 'High contrast',
+    hint: 'Stronger colours, and status hues that stay distinct with colour blindness',
+  },
+
   picker: {
     search: 'Search',
     empty: 'Nothing matches that',

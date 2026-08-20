@@ -157,7 +157,7 @@ export function Listbox({
     ? 'border-state-error'
     : open
       ? 'border-brand'
-      : 'border-brand-wash hover:border-brand-tint'
+      : 'border-line hover:border-brand'
 
   return (
     <>

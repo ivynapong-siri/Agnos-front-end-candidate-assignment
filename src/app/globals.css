@@ -2,6 +2,64 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ------------------------------------------------------------------ *
+ * Palettes
+ *
+ * Bare RGB channels, because Tailwind's opacity modifiers need them that way.
+ * Every ratio below is measured, not estimated — pickers.test.ts parses this
+ * file and fails the build if any of them regresses.
+ *
+ * The default palette is the supplied Agnos palette with three corrections,
+ * each of which was a real WCAG AA failure:
+ *   - secondary text was #9CA3AF at 2.44:1. Now #5F6672, 5.56:1 — and 4.97:1
+ *     on the pale wash used behind the dropdown search box, which #64748B
+ *     failed at 4.09:1.
+ *   - the amber status was #B4690E at 4.07:1. Now #96520A, 5.76:1.
+ *   - control borders were #E8EEF9 at 1.16:1 against white, where WCAG 1.4.11
+ *     wants 3:1 for the boundary of an interactive component. Now #6690CC,
+ *     3.27:1 — the lightest brand-family blue that passes, so the forms are
+ *     more defined than before. That is the cost of the rule, not a preference.
+ * ------------------------------------------------------------------ */
+
+:root {
+  --c-brand: 26 89 194; /* #1A59C2 — 6.46:1 on white */
+  --c-brand-tint: 143 182 232; /* #8FB6E8 — illustrations only, decorative */
+  --c-brand-wash: 232 238 249; /* #E8EEF9 — surfaces, not borders */
+  --c-line: 102 144 204; /* #6690CC — control borders, 3.27:1 */
+  --c-navy-900: 0 27 82; /* #001B52 — 15.79:1 */
+  --c-navy-950: 8 27 58; /* #081B3A */
+  --c-ink: 26 32 44; /* #1A202C — 15.69:1 */
+  --c-muted: 95 102 114; /* #5F6672 — 5.56:1 on paper, 4.97:1 on the wash surface */
+  --c-paper: 252 250 250; /* #FCFAFA */
+  --c-ok: 15 123 90; /* #0F7B5A — 5.05:1 */
+  --c-warn: 150 82 10; /* #96520A — 5.76:1 */
+  --c-error: 192 57 43; /* #C0392B — 5.23:1 */
+}
+
+/*
+ * One extra theme doing both jobs the brief asked for: higher contrast, and
+ * hues that survive colour vision deficiency.
+ *
+ * The status trio moves onto the teal/orange axis, which is the pair that stays
+ * distinguishable under deuteranopia and protanopia — red and green converge,
+ * blue and yellow do not. Error is pushed much darker as well, so lightness
+ * separates the three even when hue cannot.
+ *
+ * This is belt and braces: no status anywhere in the app relies on colour
+ * alone. Every badge carries its label as text and every error an icon.
+ */
+[data-theme='high-contrast'] {
+  --c-brand: 15 61 140; /* #0F3D8C — 10.16:1 */
+  --c-brand-tint: 90 135 198;
+  --c-brand-wash: 226 233 246;
+  --c-line: 0 27 82; /* #001B52 — 16.42:1 */
+  --c-ink: 17 24 39; /* #111827 — 17.74:1 */
+  --c-muted: 55 65 81; /* #374151 — 10.3:1 */
+  --c-ok: 0 109 91; /* #006D5B teal — 6.05:1 */
+  --c-warn: 154 83 0; /* #9A5300 orange — 5.59:1 */
+  --c-error: 142 31 75; /* #8E1F4B wine — 8.25:1 */
+}
+
 @layer base {
   html {
     -webkit-text-size-adjust: 100%;

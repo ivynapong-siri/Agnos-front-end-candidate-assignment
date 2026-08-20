@@ -3,26 +3,32 @@ module.exports = {
   content: ['./src/**/*.{ts,tsx}'],
   theme: {
     extend: {
+      // Colours resolve through CSS variables so a theme can be swapped at
+      // runtime. The variables hold bare RGB channels rather than hex, which is
+      // what lets Tailwind's opacity modifiers (bg-brand/20, text-ink/80) keep
+      // working — see globals.css for the palettes and their measured ratios.
       colors: {
-        // --- Agnos Health palette (sampled from agnos-health.palette.Woblo.png) ---
         brand: {
-          DEFAULT: '#1A59C2', // primary — logo mark, wordmark, CTAs
-          tint: '#8FB6E8',    // logo back-mark — illustrations, decorative fills
-          wash: '#E8EEF9',    // pale blue — surfaces, borders, focus halo
+          DEFAULT: 'rgb(var(--c-brand) / <alpha-value>)',
+          tint: 'rgb(var(--c-brand-tint) / <alpha-value>)',
+          wash: 'rgb(var(--c-brand-wash) / <alpha-value>)',
         },
+        // The boundary of an interactive control, which WCAG 1.4.11 requires to
+        // reach 3:1. Kept separate from brand-wash, which stays light because a
+        // surface has no contrast requirement and a card edge is decorative.
+        line: 'rgb(var(--c-line) / <alpha-value>)',
         navy: {
-          900: '#001B52',     // headings, staff dashboard chrome
-          950: '#081B3A',     // darkest surface
+          900: 'rgb(var(--c-navy-900) / <alpha-value>)',
+          950: 'rgb(var(--c-navy-950) / <alpha-value>)',
         },
-        ink: '#1A202C',       // body copy      — 12.6:1 on paper
-        muted: '#9CA3AF',     // borders, placeholders, inactive state
-        paper: '#FCFAFA',     // page background
-        // --- Added, NOT from the palette ---
-        // The palette has no green/amber/red, but encoding validation errors and
-        // presence states in blue-and-grey alone fails WCAG 1.4.1 (use of colour).
-        // Desaturated so they sit beside the brand blue instead of fighting it.
-        // Contrast on #FCFAFA: ok 4.9:1 | warn 4.7:1 | error 5.1:1
-        state: { ok: '#0F7B5A', warn: '#B4690E', error: '#C0392B' },
+        ink: 'rgb(var(--c-ink) / <alpha-value>)',
+        muted: 'rgb(var(--c-muted) / <alpha-value>)',
+        paper: 'rgb(var(--c-paper) / <alpha-value>)',
+        state: {
+          ok: 'rgb(var(--c-ok) / <alpha-value>)',
+          warn: 'rgb(var(--c-warn) / <alpha-value>)',
+          error: 'rgb(var(--c-error) / <alpha-value>)',
+        },
       },
       fontFamily: {
         sans: ['var(--font-anuphan)', 'system-ui', 'sans-serif'],
@@ -50,7 +56,7 @@ module.exports = {
       },
       keyframes: {
         breathe: { '0%,100%': { opacity: '1', transform: 'scale(1)' }, '50%': { opacity: '.45', transform: 'scale(.82)' } },
-        flash: { from: { backgroundColor: '#E8EEF9' }, to: { backgroundColor: 'transparent' } },
+        flash: { from: { backgroundColor: 'rgb(var(--c-brand-wash))' }, to: { backgroundColor: 'transparent' } },
         rise: { from: { opacity: '0', transform: 'translateY(8px)' }, to: { opacity: '1', transform: 'none' } },
         float: { '0%,100%': { transform: 'translateY(0)' }, '50%': { transform: 'translateY(-6px)' } },
       },

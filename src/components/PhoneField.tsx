@@ -86,7 +86,7 @@ export function PhoneField({
         onChange={(event) => onChange(composePhone(iso2, event.target.value))}
         onBlur={onBlur}
         className={`w-full rounded-xl border-2 bg-white px-4 py-3 text-base text-ink transition-colors placeholder:text-muted focus:outline-none focus:shadow-ring ${
-          invalid ? 'border-state-error' : 'border-brand-wash hover:border-brand-tint focus:border-brand'
+          invalid ? 'border-state-error' : 'border-line hover:border-brand focus:border-brand'
         }`}
       />
     </div>

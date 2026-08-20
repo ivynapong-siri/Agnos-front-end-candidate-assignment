@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { ContactCard } from '@/components/ContactCard'
 import { LanguageToggle } from '@/components/LanguageToggle'
 import { PageTransition } from '@/components/PageTransition'
+import { ThemeToggle } from '@/components/ThemeToggle'
 import { Logo } from '@/components/Logo'
 import { DEFAULT_LOCALE, LOCALES, getDictionary, isLocale } from '@/i18n'
 import '../globals.css'
@@ -64,6 +65,15 @@ export default async function LocaleLayout({
   return (
     <html lang={locale} className={anuphan.variable}>
       <body>
+        {/* Applies the stored palette before the rest of the body paints, so a
+            high-contrast user never sees a flash of the default one. Inline and
+            blocking on purpose — a component cannot run early enough. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "try{if(localStorage.getItem('agnos.theme')==='high-contrast')document.documentElement.dataset.theme='high-contrast'}catch(e){}",
+          }}
+        />
         {/* Soft brand wash behind everything. Blurred CSS circles rather than
             SVG blobs: same look, nothing to maintain. */}
         <div aria-hidden="true" className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
@@ -79,7 +89,8 @@ export default async function LocaleLayout({
           >
             <Logo className="h-9 w-auto" />
           </Link>
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-2">
+            <ThemeToggle dict={dict} />
             <LanguageToggle locale={locale} dict={dict} />
           </div>
         </header>

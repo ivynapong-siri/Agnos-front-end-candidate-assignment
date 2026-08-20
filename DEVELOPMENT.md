@@ -95,17 +95,67 @@ from the logo SVG itself. They map to roles, not names:
 | `brand-wash` | `#E8EEF9` | Surfaces, borders, icon plates, the focus halo |
 | `navy-900` | `#001B52` | Headings, dashboard chrome |
 | `navy-950` | `#081B3A` | Darkest surface |
-| `ink` | `#1A202C` | Body copy — 12.6:1 on paper |
-| `muted` | `#9CA3AF` | Borders, placeholders, the inactive state |
+| `ink` | `#1A202C` | Body copy — 15.7:1 on paper |
+| `muted` | `#5F6672` | Secondary text — 5.6:1. Was `#9CA3AF`, which measured 2.44:1 |
+| `line` | `#6690CC` | Control borders — 3.3:1 on white, the WCAG 1.4.11 floor |
 | `paper` | `#FCFAFA` | Page background |
 
 **One honest deviation.** The palette contains no green, amber or red. Validation
 errors and three distinct presence states cannot be encoded in blue-and-grey alone
 without failing WCAG 1.4.1. Three desaturated status colours were added — `ok
-#0F7B5A`, `warn #B4690E`, `error #C0392B`, each 4.7–5.1:1 on paper — kept under a
+#0F7B5A`, `warn #96520A`, `error #C0392B`, each 5.1–5.8:1 on paper — kept under a
 separate `state.*` key and commented as an addition in `tailwind.config.js` so nobody
 mistakes them for brand colours. They are also never the only signal: every status
 carries its label as text, and every error carries an icon and a message.
+
+### Contrast, and the three failures in the supplied palette
+
+Every ratio in this project is computed, and `contrast.test.ts` parses
+`globals.css` and recomputes them on every run — a copy of the numbers in a doc
+would drift from what ships. Writing that test immediately found three genuine
+WCAG AA failures that had been in the design from the start:
+
+| | Was | Measured | Now |
+| --- | --- | --- | --- |
+| Secondary text | `#9CA3AF` | 2.44:1 | `#5F6672`, 5.6:1 |
+| Amber status | `#B4690E` | 4.07:1 | `#96520A`, 5.8:1 |
+| Control borders | `#E8EEF9` | 1.16:1 | `line` `#6690CC`, 3.3:1 |
+
+The border one is the interesting case. WCAG 1.4.11 asks for 3:1 on anything
+required to identify a component, and the box *is* what identifies a text input.
+No blue light enough to keep the original airy look gets there — `#7FA5D8` only
+reaches 2.54:1 — so the forms are visibly more defined than they were. That is
+the rule's cost, not a preference. `brand-wash` stays light and keeps its job as
+a *surface*: a filled panel has no contrast requirement, and a card edge is
+decorative because the card is also identified by its background and shadow.
+
+The test also caught a fourth, subtler one after the first fix: `#64748B`
+secondary text passed on the page background at 4.58:1 but only reached 4.09:1
+on the pale wash behind the dropdown's search box. Hence `#5F6672`.
+
+### The high-contrast theme
+
+Colours resolve through CSS variables holding bare RGB channels —
+`--c-brand: 26 89 194` — rather than hex, because that is what lets Tailwind's
+opacity modifiers (`bg-brand/20`, `text-ink/80`) keep working against a variable.
+`tailwind.config.js` references them as `rgb(var(--c-brand) / <alpha-value>)`.
+
+One extra theme does both jobs the brief asked for. Contrast goes up across the
+board, and the status trio moves onto the teal/orange axis, which is the pair
+that survives deuteranopia and protanopia — red and green converge, blue and
+yellow do not. The three are also separated by lightness, so hue is never the
+only cue, and a test asserts that separation rather than trusting the choice.
+
+It is stored in `localStorage` and applied by a small inline script at the top of
+`<body>`, because a component cannot run early enough to avoid a flash of the
+default palette. The toggle reads the live value with `useSyncExternalStore`
+rather than an effect: the state lives on the `<html>` element, outside React,
+and that hook takes a separate server snapshot so SSR and hydration agree
+without a mismatch to suppress.
+
+None of this is load-bearing for comprehension. Colour was never the only signal
+in the app — every status badge carries its label as text, every validation error
+an icon and a sentence — so the theme is belt and braces rather than the fix.
 
 ### Type, and why the line-heights are unusual
 
@@ -209,7 +259,7 @@ links and the filter chips — were caught by measuring them, and needed
 | Clear CTA | "Submit my information" — a verb and an object, not "Submit" |
 | Feedback on submission | A receipt with a reference code and what happens next |
 | Communicate privacy | The privacy line sits immediately above the submit button, where the decision is made |
-| Whitespace and contrast | Verified: 12.6:1 body copy, 4.5:1 minimum everywhere |
+| Whitespace and contrast | Measured, and asserted in a test: 15.7:1 body copy, 4.5:1 minimum on text, 3:1 on control borders |
 | Touch-friendly inputs | 44 px minimum, measured |
 
 Marking is inverted from the common default: **optional fields are labelled, required
@@ -477,5 +527,8 @@ being sanitised.
 
 Alongside it: `schema.test.ts` for the validation rules, `export.test.ts` for CSV
 escaping, formula injection, the BOM and the localised columns, and `i18n.test.ts` for
-dictionary parity. Forty-three tests on `node:test` through `tsx` — no framework, no
+dictionary parity. `pickers.test.ts` covers the date grid and the phone rules, and
+`contrast.test.ts` parses `globals.css` and recomputes every WCAG ratio, so a palette
+edit that breaks AA fails the build rather than shipping. Sixty-nine tests on
+`node:test` through `tsx` — no framework, no
 fixtures, no mocks.

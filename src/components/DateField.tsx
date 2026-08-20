@@ -117,7 +117,7 @@ export function DateField({
     ? 'border-state-error'
     : open
       ? 'border-brand'
-      : 'border-brand-wash hover:border-brand-tint'
+      : 'border-line hover:border-brand'
 
   return (
     <>
@@ -222,7 +222,7 @@ export function DateField({
                           ? 'cursor-not-allowed text-muted/40'
                           : cell.inMonth
                             ? 'text-ink hover:bg-brand-wash'
-                            : 'text-muted/70 hover:bg-brand-wash'
+                            : 'text-muted hover:bg-brand-wash'
                     } ${isToday && !isSelected ? 'ring-1 ring-inset ring-brand' : ''}`}
                   >
                     {cell.date.getDate()}

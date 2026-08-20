@@ -32,7 +32,7 @@ const INPUT =
 function borderFor(error: boolean, valid: boolean) {
   if (error) return 'border-state-error focus:border-state-error'
   if (valid) return 'border-state-ok/40 focus:border-brand'
-  return 'border-brand-wash hover:border-brand-tint focus:border-brand'
+  return 'border-line hover:border-brand focus:border-brand'
 }
 
 function CheckIcon() {

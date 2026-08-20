@@ -107,7 +107,7 @@ export function SessionCard({
                 <dt className="text-xs font-semibold text-muted sm:w-2/5 sm:shrink-0">
                   {dict.form.fields[field.name].label}
                 </dt>
-                <dd className={`min-w-0 break-words text-sm ${raw ? 'text-ink' : 'text-muted/70'}`}>
+                <dd className={`min-w-0 break-words text-sm ${raw ? 'text-ink' : 'text-muted'}`}>
                   {raw ? displayValue(field, raw, dict) : field.required ? dict.staff.notAnswered : '—'}
                 </dd>
               </div>
