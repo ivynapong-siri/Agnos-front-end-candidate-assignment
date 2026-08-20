@@ -11,22 +11,26 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params
   const dict = getDictionary(isLocale(locale) ? locale : DEFAULT_LOCALE)
-  // `absolute` opts out of the layout's "%s · site name" template, which
-  // would otherwise render the site name twice.
+  // `absolute` opts out of the layout's "%s · site name" template, which would
+  // otherwise render the site name twice.
   return { title: { absolute: dict.meta.siteTitle }, description: dict.meta.siteDescription }
 }
 
 /**
- * The same landing page with a looping video behind it, as an alternative to
- * the still folder hero. Both exist so they can be compared side by side; one
- * of them should eventually win and the other be deleted.
+ * The landing page with the clip playing behind it, as an alternative to the
+ * still folder hero.
  *
- * The scrim is the whole problem with a video hero. Measured across the left
- * half of the footage, luminance swings from 56 to 221 — dark blue and near
- * white inside the same frame — so no single text colour survives unaided, and
- * a flat scrim strong enough to fix it (0.85+) washes the video out completely.
- * A left-to-right gradient solves both: opaque where the words are, clear where
- * the footage is worth seeing.
+ * Full screen: `-mt-16` cancels the spacer the fixed header leaves behind and
+ * `min-h-svh` fills the viewport, so the video runs edge to edge and passes
+ * under the menu instead of starting below a reserved strip. `svh` rather than
+ * `vh` because mobile browsers measure `vh` against the retracted address bar,
+ * which leaves a gap at the bottom on first paint.
+ *
+ * There is no scrim over the video at all. Dimming the whole frame to protect
+ * one paragraph is a bad trade — it costs the footage everything and buys
+ * legibility only where the words happen to sit. The text has its own glass
+ * panel instead, so the video stays completely clear and the copy still clears
+ * 4.5:1 over the darkest frame.
  */
 export default async function HeroVideoPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale: raw } = await params
@@ -34,22 +38,17 @@ export default async function HeroVideoPage({ params }: { params: Promise<{ loca
   const dict = getDictionary(locale)
 
   return (
-    <main className="w-full pb-16">
-      <section className="relative isolate overflow-hidden sm:-mt-20 sm:pt-20">
-        <HeroVideo className="absolute inset-0 h-full w-full object-cover object-center" />
+    <main className="-mt-16 sm:-mt-20">
+      <section className="relative isolate flex min-h-svh flex-col overflow-hidden pt-16 sm:pt-20">
+        <HeroVideo className="absolute inset-0 -z-10 h-full w-full object-cover object-center" />
 
-        {/* Opaque only under the text column, then out of the way. The earlier
-            version faded across the full width and buried the footage; these
-            stops hold 4.5:1 where the words are and release by two thirds.
-            Below lg the video is behind the whole column, so it stays veiled. */}
-        <div
-          aria-hidden="true"
-          className="absolute inset-0 bg-white/85 lg:bg-[linear-gradient(to_right,rgba(255,255,255,0.96)_0%,rgba(255,255,255,0.94)_30%,rgba(255,255,255,0.45)_52%,rgba(255,255,255,0)_68%)]"
-        />
-
-        {/* Same row for both cards, so they line up. */}
-        <div className="relative mx-auto grid max-w-6xl gap-x-10 gap-y-8 px-4 py-12 sm:px-6 sm:py-16 lg:grid-cols-2 lg:px-8 lg:py-20">
-          <div className="max-w-md lg:col-start-1 lg:row-start-1">
+        <div className="mx-auto grid w-full max-w-6xl flex-1 content-center gap-x-10 gap-y-8 px-4 py-10 sm:px-6 lg:grid-cols-2 lg:px-8">
+          {/*
+            The panel is what makes a clear video possible. At /90 the muted body
+            text holds about 5:1 over the darkest pixel in the footage
+            (rgb 15 60 141); with nothing behind it, it would be 1.6:1.
+          */}
+          <div className="max-w-md rounded-3xl bg-white/90 p-6 shadow-card ring-1 ring-white/70 backdrop-blur-xl sm:p-8 lg:col-start-1 lg:row-start-1">
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-brand">{dict.landing.eyebrow}</p>
             <h1 className="mt-3 text-3xl font-bold text-navy-900 sm:text-4xl">{dict.landing.heading}</h1>
             <p className="mt-4 text-base text-ink/80">{dict.landing.body}</p>
@@ -73,11 +72,15 @@ export default async function HeroVideoPage({ params }: { params: Promise<{ loca
             className="lg:col-start-2 lg:row-start-2 lg:max-w-sm"
           />
         </div>
-      </section>
 
-      {/* Outside the video, on the plain background: centred over the middle of
-          the footage it would sit where the scrim has faded out. */}
-      <p className="mx-auto mt-8 max-w-6xl px-6 text-center text-xs text-muted">{dict.landing.footnote}</p>
+        {/* Inside the section, floating on the video like the header, rather
+            than pushing the background up to make room for itself. */}
+        <p className="mx-auto w-full max-w-6xl px-6 pb-8 text-center">
+          <span className="inline-block rounded-full bg-white/85 px-4 py-2 text-xs text-navy-900 backdrop-blur">
+            {dict.landing.footnote}
+          </span>
+        </p>
+      </section>
     </main>
   )
 }

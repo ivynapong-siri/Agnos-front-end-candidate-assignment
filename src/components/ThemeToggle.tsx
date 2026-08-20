@@ -65,9 +65,11 @@ export function ThemeToggle({ dict }: { dict: Dictionary }) {
       }`}
     >
       <ContrastIcon />
-      {/* Visible, not sr-only: an icon alone says nothing, and a title attribute
-          never appears on a touch device at all. */}
-      <span>{dict.theme.label}</span>
+      {/* Visible from sm up: an icon alone says nothing, and a title attribute
+          never appears on a touch device. Below sm there is no room beside the
+          language switch, so it stays as the accessible name. */}
+      <span className="hidden sm:inline">{dict.theme.label}</span>
+      <span className="sr-only sm:hidden">{dict.theme.label}</span>
     </button>
   )
 }

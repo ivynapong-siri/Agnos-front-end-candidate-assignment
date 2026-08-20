@@ -81,11 +81,12 @@ export default async function LocaleLayout({
           <div className="absolute -bottom-48 -right-32 h-[26rem] w-[26rem] rounded-full bg-brand-tint/25 blur-3xl" />
         </div>
 
-        <header className="sm:sticky sm:top-0 sm:z-40 sm:bg-white/35 sm:backdrop-blur-2xl sm:backdrop-saturate-150">
-          {/* No band — just a veil and a blur, so the hero shows through. 35%
-              is the floor at which the navy labels still clear 4.5:1 over the
-              worst thing that can scroll under: the blue submit button. */}
-          <div className="mx-auto flex w-full max-w-7xl flex-wrap items-center gap-3 px-4 py-5 sm:h-20 sm:flex-nowrap sm:px-6">
+        <header className="fixed inset-x-0 top-0 z-50 bg-white/35 backdrop-blur-2xl backdrop-saturate-150">
+          {/* Out of the flow, so a full-screen background runs underneath it.
+              No band — just a veil and a blur. 35% is the floor at which the
+              navy labels still clear 4.5:1 over the worst thing that can pass
+              beneath: the blue submit button. */}
+          <div className="mx-auto flex h-16 w-full max-w-7xl flex-nowrap items-center gap-3 px-4 sm:h-20 sm:px-6">
           <Link
             href={`/${locale}`}
             aria-label={dict.nav.home}
@@ -102,7 +103,9 @@ export default async function LocaleLayout({
 
         {/* The header sits outside the transition so the logo and the language
             toggle stay put while the page beneath them crossfades. */}
-        <PageTransition>{children}</PageTransition>
+        <div className="pt-16 sm:pt-20">
+          <PageTransition>{children}</PageTransition>
+        </div>
 
         {/* Bottom-right on every page, so a patient stuck on a field never has
             to go looking for how to ask. */}
