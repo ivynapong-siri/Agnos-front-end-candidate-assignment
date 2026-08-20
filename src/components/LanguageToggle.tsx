@@ -23,7 +23,7 @@ export function LanguageToggle({ locale, dict }: { locale: Locale; dict: Diction
   return (
     <nav
       aria-label={dict.nav.languageLabel}
-      className="relative flex items-center gap-1 rounded-full bg-white p-1 ring-1 ring-brand-wash"
+      className="relative flex items-center gap-1 rounded-full bg-white/50 p-1 ring-1 ring-white/70 backdrop-blur-md"
     >
       {LOCALES.map((option) => {
         const active = option === locale

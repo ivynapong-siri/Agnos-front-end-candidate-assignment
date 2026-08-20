@@ -1,6 +1,6 @@
-import Link from 'next/link'
+import Image from 'next/image'
 import { ArtPatient, ArtStaff } from '@/components/Art'
-import { ArtSync } from '@/components/ArtSync'
+import { ChoiceCard } from '@/components/ChoiceCard'
 import { DEFAULT_LOCALE, getDictionary, isLocale } from '@/i18n'
 
 export default async function Home({ params }: { params: Promise<{ locale: string }> }) {
@@ -8,55 +8,65 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
   const locale = isLocale(raw) ? raw : DEFAULT_LOCALE
   const dict = getDictionary(locale)
 
-  const choices = [
-    {
-      href: `/${locale}/patient`,
-      art: ArtPatient,
-      title: dict.landing.patientTitle,
-      blurb: dict.landing.patientBlurb,
-      cta: dict.landing.patientCta,
-    },
-    {
-      href: `/${locale}/staff`,
-      art: ArtStaff,
-      title: dict.landing.staffTitle,
-      blurb: dict.landing.staffBlurb,
-      cta: dict.landing.staffCta,
-    },
-  ]
-
   return (
-    <main className="mx-auto w-full max-w-5xl px-4 pb-20 pt-4 sm:px-6 sm:pt-8">
-      <section className="grid items-center gap-8 lg:grid-cols-2">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-brand">{dict.landing.eyebrow}</p>
-          <h1 className="mt-3 text-3xl font-bold text-navy-900 sm:text-4xl">{dict.landing.heading}</h1>
-          <p className="mt-4 max-w-md text-base text-ink/80">{dict.landing.body}</p>
+    <main className="w-full pb-16">
+      {/* Full-bleed: the section spans the viewport while the content inside
+          stays on the same max-w-6xl measure as the rest of the app. */}
+      <section className="relative isolate overflow-hidden">
+        {/*
+          next/image rather than a CSS background: same result visually
+          (object-cover / object-right is bg-cover / bg-right), but it serves
+          AVIF and WebP sized to the viewport. The full 3168px source is kept so
+          there is headroom for 2x displays — it is never sent as-is, Next
+          resizes on request, and a 1280px viewport pulls a 1920px variant.
+
+          Hidden below lg. The art is a 2.4:1 banner with everything of interest
+          on the right — on a phone it would crop to an empty white field.
+        */}
+        <Image
+          src="/hero-folder.jpg"
+          alt=""
+          fill
+          priority
+          quality={85}
+          sizes="(min-width: 1024px) 100vw, 0px"
+          className="pointer-events-none hidden select-none object-cover object-right lg:block"
+        />
+
+        <div className="relative mx-auto grid max-w-6xl items-start gap-10 px-4 py-10 sm:px-6 sm:py-14 lg:grid-cols-2 lg:gap-10 lg:px-8 lg:py-16">
+          {/* Left: the pitch, then the patient's way in. */}
+          <div className="max-w-md">
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-brand">{dict.landing.eyebrow}</p>
+            <h1 className="mt-3 text-3xl font-bold text-navy-900 sm:text-4xl">{dict.landing.heading}</h1>
+            <p className="mt-4 text-base text-ink/80">{dict.landing.body}</p>
+
+            <ChoiceCard
+              href={`/${locale}/patient`}
+              art={ArtPatient}
+              title={dict.landing.patientTitle}
+              blurb={dict.landing.patientBlurb}
+              cta={dict.landing.patientCta}
+              className="mt-8"
+            />
+          </div>
+
+          {/* Right: the staff card sits where the folder's documents are, so it
+              reads as the one being pulled out. Tilted very slightly, and only
+              offset from lg up — below that there is no image to align to. */}
+          <div className="lg:pl-6 lg:pt-16">
+            <ChoiceCard
+              href={`/${locale}/staff`}
+              art={ArtStaff}
+              title={dict.landing.staffTitle}
+              blurb={dict.landing.staffBlurb}
+              cta={dict.landing.staffCta}
+              className="lg:max-w-sm lg:-rotate-2 lg:hover:rotate-0"
+            />
+          </div>
         </div>
-        <ArtSync className="w-full max-w-lg justify-self-center" />
-      </section>
 
-      <section className="mt-10 grid gap-5 sm:mt-14 sm:grid-cols-2">
-        {choices.map(({ href, art: Art, title, blurb, cta }) => (
-          <Link
-            key={href}
-            href={href}
-            className="group rounded-3xl border border-brand-wash bg-white p-6 shadow-card transition-all hover:-translate-y-1 hover:shadow-lift focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand sm:p-8"
-          >
-            <Art className="h-24 w-24" />
-            <h2 className="mt-5 text-xl font-bold text-navy-900">{title}</h2>
-            <p className="mt-2 text-sm text-ink/75">{blurb}</p>
-            <span className="mt-5 inline-flex items-center gap-2 font-semibold text-brand">
-              {cta}
-              <span className="transition-transform group-hover:translate-x-1" aria-hidden="true">
-                →
-              </span>
-            </span>
-          </Link>
-        ))}
+        <p className="relative mx-auto max-w-6xl px-6 pb-10 text-center text-xs text-muted">{dict.landing.footnote}</p>
       </section>
-
-      <p className="mt-10 text-center text-xs text-muted">{dict.landing.footnote}</p>
     </main>
   )
 }

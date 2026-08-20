@@ -296,7 +296,7 @@ export function IntakeForm({ dict, locale }: { dict: Dictionary; locale: Locale 
       <form onSubmit={onSubmit} noValidate>
         {/* Sticky so the patient can always see how much is left, per IxDF's
             progress-indicator guidance, without a multi-step wizard. */}
-        <div className="sticky top-0 z-20 -mx-4 mb-6 border-b border-brand-wash bg-paper/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6">
+        <div className="sticky top-0 z-20 -mx-4 mb-6 border-b border-brand-wash bg-paper/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:top-20 sm:px-6">
           <div className="flex items-center gap-4">
             <div className="min-w-0 flex-1">
               <LiveMirror sessionId={sessionId} startedAt={startedAt} publish={publish} dict={dict} />

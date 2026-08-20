@@ -61,7 +61,7 @@ export function StaffBoard({ dict, locale }: { dict: Dictionary; locale: Locale 
     <>
       {!realtimeConfigured && <SetupNotice dict={dict} locale={locale} />}
 
-      <div className="sticky top-0 z-20 -mx-4 mb-6 border-b border-brand-wash bg-paper/95 px-4 py-4 backdrop-blur sm:-mx-6 sm:px-6">
+      <div className="sticky top-0 z-20 -mx-4 mb-6 border-b border-brand-wash bg-paper/95 px-4 py-4 backdrop-blur sm:-mx-6 sm:top-20 sm:px-6">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <div className="mr-auto">
             <h1 className="text-xl font-bold text-navy-900 sm:text-2xl">{dict.staff.title}</h1>
