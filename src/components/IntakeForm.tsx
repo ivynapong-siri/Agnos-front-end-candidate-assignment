@@ -19,7 +19,7 @@ import {
   displayValue,
 } from '@/lib/fields'
 import { makePatientSchema, type PatientForm } from '@/lib/schema'
-import { realtimeConfigured, usePatientPresence } from '@/lib/realtime'
+import { realtimeConfigured, saveIntake, usePatientPresence } from '@/lib/realtime'
 
 const TOTAL_REQUIRED = REQUIRED_FIELDS.length
 
@@ -260,14 +260,19 @@ export function IntakeForm({ dict, locale }: { dict: Dictionary; locale: Locale 
   const onSubmit = methods.handleSubmit((values) => {
     // Published here rather than waiting on LiveMirror's debounce, which
     // unmounts on the very next render.
-    publish({
+    const finished = {
       sessionId,
       data: values,
       submitted: true,
       filled: TOTAL_REQUIRED,
       total: TOTAL_REQUIRED,
       startedAt,
-    })
+    }
+    publish(finished)
+    // Written as well as broadcast. The broadcast reaches whoever happens to be
+    // watching; the row is what a receptionist opening the board later, or
+    // after a reload, actually reads.
+    void saveIntake(finished)
     sessionStorage.removeItem(DRAFT_KEY)
     setReceipt(values)
   })

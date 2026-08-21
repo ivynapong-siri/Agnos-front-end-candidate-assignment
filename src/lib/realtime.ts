@@ -146,6 +146,79 @@ const SYNC_EVENT = 'sync'
 const REJOIN_DELAY_MS = 1500
 
 /* ------------------------------------------------------------------ *
+ * Storage
+ *
+ * The channel carries a form while somebody is filling it in. It cannot carry
+ * one after they have gone: a broadcast reaches whoever is listening at the
+ * time and is not retained, so a front desk that reloaded — or a second
+ * receptionist opening the board an hour later — saw an empty list even though
+ * ten people had submitted.
+ *
+ * Submitted forms are therefore written to a table, and the board reads that
+ * table on open. Only submitted ones: a form still being typed is already live
+ * on the channel and reappears the moment the patient touches it again, so
+ * storing every keystroke would be a great deal of writing for a row that is
+ * about to be replaced anyway — and a great deal of personal information kept
+ * for no reason.
+ *
+ * Every call here fails quietly. The table is created by hand (see
+ * supabase/intake-table.sql) and the app has to keep working before anyone has
+ * run it — the realtime board is exactly what it was, only without the history.
+ * ------------------------------------------------------------------ */
+
+const TABLE = 'intake'
+
+/** A row read back from the table, with the time it was last written. */
+export type StoredIntake = PatientPresence & { lastChangeAt: number }
+
+export async function saveIntake(payload: PatientPresence): Promise<void> {
+  if (!client) return
+  try {
+    await client.from(TABLE).upsert(
+      {
+        session_id: payload.sessionId,
+        room: currentChannel(),
+        data: payload.data,
+        submitted: payload.submitted,
+        filled: payload.filled,
+        total: payload.total,
+        started_at: new Date(payload.startedAt).toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'session_id' },
+    )
+  } catch {
+    // The board still has this patient live on the channel; the only thing lost
+    // is the history, and there is nothing useful to say to a patient about it.
+  }
+}
+
+export async function loadIntakes(): Promise<StoredIntake[]> {
+  if (!client) return []
+  try {
+    const { data, error } = await client
+      .from(TABLE)
+      .select('session_id, data, submitted, filled, total, started_at, updated_at')
+      .eq('room', currentChannel())
+      .order('updated_at', { ascending: false })
+
+    if (error || !data) return []
+
+    return data.map((row) => ({
+      sessionId: row.session_id as string,
+      data: (row.data ?? {}) as PatientPresence['data'],
+      submitted: Boolean(row.submitted),
+      filled: Number(row.filled ?? 0),
+      total: Number(row.total ?? 0),
+      startedAt: new Date(row.started_at as string).getTime(),
+      lastChangeAt: new Date(row.updated_at as string).getTime(),
+    }))
+  } catch {
+    return []
+  }
+}
+
+/* ------------------------------------------------------------------ *
  * The patient's channel
  *
  * Module scope, not component state, and that is the whole point of it.
@@ -453,6 +526,19 @@ export function useStaffSessions() {
         exitTimer.current = setTimeout(() => publish(pruneDeparted(seen.current, Date.now())), EXIT_MS + 20)
       }
     }
+
+    // Everything submitted before this board opened. Read once, and merged
+    // underneath whatever the channel is carrying now — a patient still on the
+    // page is live, and the stored copy must not overwrite that.
+    void loadIntakes().then((stored) => {
+      if (disposed || stored.length === 0) return
+      const next = new Map(seen.current)
+      for (const row of stored) {
+        if (next.has(row.sessionId)) continue
+        next.set(row.sessionId, { ...row, online: false, leavingAt: undefined, changed: [] })
+      }
+      publish(next)
+    })
 
     const join = () => {
       if (disposed) return

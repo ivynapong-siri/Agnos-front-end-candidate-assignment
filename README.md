@@ -256,7 +256,17 @@ These are deliberate, and each has an obvious upgrade path.
   since there the names and phone numbers are page text rather than input values,
   and Clarity's own input masking would not cover them. Analytics is behind
   `NEXT_PUBLIC_CLARITY_ID`, so a clone with no id set records nothing.
-- **Nothing is persisted** *by the app itself*. Sessions live in memory in each browser tab, and the
+- **Submitted forms are stored for 24 hours.** The front desk needed the day's
+  intakes to survive a reload and to be the same list on every machine, and a
+  broadcast reaches only whoever is listening at the time — so a submitted form is
+  written to a Supabase table as well as broadcast, and the board reads that table
+  on open. Only submitted ones: a form still being typed is already live on the
+  channel and comes back the moment the patient touches it again. A trigger clears
+  anything older than a day, because the table is entirely personal information.
+  The policies are open to anyone holding the publishable key, which is a
+  demonstration's answer rather than a clinic's — see `supabase/intake-table.sql`,
+  which says so and says what to do instead.
+- **In-progress forms are not persisted.** They live in memory in each browser tab, and the
   in-progress draft lives in `sessionStorage`, which dies with the tab. Reloading the
   dashboard clears the board, and the CSV can only export what the open dashboard has
   seen. For a form that is entirely PII this is the correct default and less code than
