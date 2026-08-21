@@ -18,11 +18,9 @@ export default async function PatientPage({ params }: { params: Promise<{ locale
 
   return (
     <main className="page-shell pb-20 pt-6 sm:pt-10">
-      {/* Narrow for readability, left-aligned so it starts on the same line as
-          the logo. Centring it moved the form 256px off the header. */}
-      <div className="max-w-3xl">
-        <IntakeForm dict={getDictionary(locale)} locale={locale} />
-      </div>
+      {/* The form keeps its reading width; IntakeForm applies it per block so a
+          picture can sit beside each section without widening the questions. */}
+      <IntakeForm dict={getDictionary(locale)} locale={locale} />
     </main>
   )
 }
