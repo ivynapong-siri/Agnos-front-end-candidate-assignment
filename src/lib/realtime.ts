@@ -6,20 +6,35 @@ import { FIELDS, type FieldName } from './fields'
 import type { PatientForm } from './schema'
 
 /**
- * Transport: Supabase Realtime **Presence** on a single shared channel.
+ * Transport: Supabase Realtime on a single shared channel, using **Broadcast for
+ * the form and Presence for the roster**.
  *
- * Presence is chosen over Broadcast deliberately. Presence already solves the
- * three hard parts of this feature for free:
- *   - late join      staff opening the dashboard mid-form gets every current
- *                    value in the first `sync` event
- *   - disconnect     closing the tab removes the entry, no heartbeat to write
- *   - shared state   the payload *is* the state, so there is no snapshot
- *                    request/response protocol to invent
- * Broadcast would mean hand-rolling all three.
+ * Presence alone was the original design, and it was wrong. Supabase caps
+ * presence updates at **six per channel join** — measured against production at
+ * four different rates, all of which died on the sixth `track()`, from 500ms
+ * apart to 6s apart:
  *
- * ponytail: the whole form travels in every presence payload (~500 bytes for
- * 13 short fields). If the form grew to hundreds of fields or long free text,
- * switch to Broadcast for field-level patches plus Presence for the snapshot.
+ *     {"message":"Client presence rate limit exceeded"} -> phx_close
+ *
+ * It is a quota, not a rate, so no amount of debouncing survives it: a patient
+ * got about six edits in before the channel closed for good. Worse, the socket
+ * stays open when the channel closes, so supabase-js never reconnected and the
+ * form was disconnected for the rest of its life while still showing
+ * "connecting".
+ *
+ * So the two jobs are split by what each primitive is actually good at:
+ *   - Broadcast  every edit. Measured at 4 msg/s for 34s: 136 sent, 136
+ *                delivered, no error. This is the normal messaging primitive and
+ *                the one the 10 events/second client throttle below is for.
+ *   - Presence   one `track({ sessionId })` per join, identity only. Kept purely
+ *                because it is the only thing that reports a patient *leaving* —
+ *                closing the tab removes the entry with no heartbeat to write.
+ *
+ * What that split costs, and how it is paid: broadcasts are not retained, so
+ * staff opening the dashboard mid-form has missed everything. On subscribe it
+ * broadcasts a `sync` request and every patient answers with its current form.
+ * That is the request/response protocol presence used to make unnecessary — 20
+ * lines, and the price of a transport that does not die on the sixth keystroke.
  */
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -123,55 +138,111 @@ export function deriveStatus(session: StaffSession, now: number): PatientStatus 
  * Patient side
  * ------------------------------------------------------------------ */
 
+/** Form edits. Broadcast, not presence — see the note at the top of the file. */
+const FORM_EVENT = 'form'
+/** Staff asking whoever is mid-form to resend, so a late join sees the board. */
+const SYNC_EVENT = 'sync'
+/** How long to wait before rejoining a channel the server closed. */
+const REJOIN_DELAY_MS = 1500
+
 export function usePatientPresence(sessionId: string) {
   const [connection, setConnection] = useState<Connection>(realtimeConfigured ? 'connecting' : 'off')
   const channel = useRef<RealtimeChannel | null>(null)
   const subscribed = useRef(false)
-  // Whatever we last tried to send. Replayed on (re)subscribe so a reconnect
-  // never leaves staff looking at a stale form.
+  // Whatever we last tried to send. Resent on (re)subscribe, and whenever staff
+  // asks, so neither a reconnect nor a late-opening dashboard leaves the front
+  // desk looking at a stale form.
   const latest = useRef<PatientPresence | null>(null)
 
   useEffect(() => {
     if (!client || !sessionId) return
+    const active = client
+    let disposed = false
+    let retry: ReturnType<typeof setTimeout> | undefined
 
-    const ch = client.channel(currentChannel(), { config: { presence: { key: sessionId } } })
-    channel.current = ch
+    const join = () => {
+      if (disposed) return
+      const ch = active.channel(currentChannel(), { config: { presence: { key: sessionId } } })
+      channel.current = ch
 
-    ch.subscribe((status) => {
-      if (status === 'SUBSCRIBED') {
-        subscribed.current = true
-        setConnection('live')
-        if (latest.current) void ch.track(latest.current)
-        return
+      // Guards the rejoin against itself: removeChannel() fires the subscribe
+      // callback with CLOSED again, which would otherwise schedule a second
+      // rejoin for every one that ran.
+      let closing = false
+      const rejoin = () => {
+        if (disposed || closing) return
+        closing = true
+        subscribed.current = false
+        void active.removeChannel(ch)
+        retry = setTimeout(join, REJOIN_DELAY_MS)
       }
-      subscribed.current = false
-      setConnection(status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' ? 'error' : 'connecting')
-    })
+
+      const sendLatest = () => {
+        if (latest.current) void ch.send({ type: 'broadcast', event: FORM_EVENT, payload: latest.current })
+      }
+
+      // Staff opening the dashboard mid-form has missed every edit so far.
+      ch.on('broadcast', { event: SYNC_EVENT }, sendLatest)
+
+      ch.subscribe((status) => {
+        if (disposed || closing) return
+        if (status === 'SUBSCRIBED') {
+          subscribed.current = true
+          setConnection('live')
+          // Exactly one track() per join, carrying identity and nothing else.
+          // Presence is only the roster now: it says who is here and tells staff
+          // the moment they leave. The form itself travels by broadcast.
+          void ch.track({ sessionId })
+          sendLatest()
+          return
+        }
+        subscribed.current = false
+        if (status === 'CLOSED') {
+          // Reported as connecting because that is now true — a rejoin is
+          // scheduled. Before this existed the channel simply stayed dead and
+          // the patient was shown "connecting" forever.
+          setConnection('connecting')
+          rejoin()
+          return
+        }
+        setConnection(status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' ? 'error' : 'connecting')
+      })
+
+      return ch
+    }
+
+    join()
 
     // A tab that is closed outright runs no cleanup at all, so the server has
     // to notice the socket died — which is slow. pagehide fires early enough to
     // get an untrack out first.
     const leave = () => {
-      void ch.untrack()
+      void channel.current?.untrack()
     }
     window.addEventListener('pagehide', leave)
 
     return () => {
+      disposed = true
       subscribed.current = false
-      channel.current = null
+      clearTimeout(retry)
       window.removeEventListener('pagehide', leave)
+      const ch = channel.current
+      channel.current = null
+      if (!ch) return
       // untrack() before unsubscribing: it pushes a presence diff immediately,
       // so staff sees the patient leave within a beat. removeChannel alone only
       // unsubscribes this client and leaves the server to work it out.
       void ch.untrack().finally(() => {
-        void client.removeChannel(ch)
+        void active.removeChannel(ch)
       })
     }
   }, [sessionId])
 
   const publish = useCallback((payload: PatientPresence) => {
     latest.current = payload
-    if (subscribed.current) void channel.current?.track(payload)
+    if (subscribed.current) {
+      void channel.current?.send({ type: 'broadcast', event: FORM_EVENT, payload })
+    }
   }, [])
 
   return { publish, connection }
@@ -255,21 +326,36 @@ export function useStaffSessions() {
   const [connection, setConnection] = useState<Connection>(realtimeConfigured ? 'connecting' : 'off')
   const seen = useRef<ReadonlyMap<string, StaffSession>>(new Map())
   const exitTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  /**
+   * The latest form each patient has broadcast. Presence used to hold this, and
+   * `mergePresence` still takes the same shape — the data just arrives by a
+   * different road now, so all of its behaviour and its tests are untouched.
+   */
+  const live = useRef<Map<string, PatientPresence>>(new Map())
 
   useEffect(() => {
     if (!client) return
+    const active = client
+    let disposed = false
+    let retry: ReturnType<typeof setTimeout> | undefined
 
-    // Staff subscribes without track(), so it observes presence without
-    // appearing in it — no role flag to filter on.
-    const ch = client.channel(currentChannel())
+    // Held so teardown removes the channel that is actually open. client.channel()
+    // does not return an existing channel for a topic, it makes another one, so
+    // removeChannel(client.channel(topic)) would have swept up a fresh instance
+    // and left the live one running.
+    let current: RealtimeChannel | null = null
 
     const publish = (next: ReadonlyMap<string, StaffSession>) => {
       seen.current = next
       setSessions([...next.values()].sort((a, b) => b.lastChangeAt - a.lastChangeAt))
     }
 
-    const sync = () => {
-      const next = mergePresence(seen.current, ch.presenceState<PatientPresence>(), Date.now())
+    const recompute = () => {
+      const record: Record<string, PatientPresence[]> = {}
+      live.current.forEach((patient, id) => {
+        record[id] = [patient]
+      })
+      const next = mergePresence(seen.current, record, Date.now())
       publish(next)
 
       // One timer for the whole board, not one per card. Fires after the exit
@@ -280,14 +366,65 @@ export function useStaffSessions() {
       }
     }
 
-    ch.on('presence', { event: 'sync' }, sync).subscribe((status) => {
-      if (status === 'SUBSCRIBED') return setConnection('live')
-      setConnection(status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' ? 'error' : 'connecting')
-    })
+    const join = () => {
+      if (disposed) return
+      // Staff subscribes without track(), so it observes presence without
+      // appearing in it — no role flag to filter on.
+      const ch = active.channel(currentChannel())
+      current = ch
+
+      let closing = false
+      const rejoin = () => {
+        if (disposed || closing) return
+        closing = true
+        void active.removeChannel(ch)
+        retry = setTimeout(join, REJOIN_DELAY_MS)
+      }
+
+      ch.on('broadcast', { event: FORM_EVENT }, ({ payload }) => {
+        const patient = payload as PatientPresence
+        if (!patient?.sessionId) return // ignore anything not shaped like a patient
+        live.current.set(patient.sessionId, patient)
+        recompute()
+      })
+
+      // Presence is the roster: it is what says a patient has gone, which is the
+      // one thing broadcast cannot tell us. Dropping them here is what lets
+      // mergePresence stamp the card for its exit animation.
+      ch.on('presence', { event: 'sync' }, () => {
+        const online = new Set(Object.keys(ch.presenceState()))
+        for (const id of [...live.current.keys()]) {
+          if (!online.has(id)) live.current.delete(id)
+        }
+        recompute()
+      })
+
+      ch.subscribe((status) => {
+        if (disposed || closing) return
+        if (status === 'SUBSCRIBED') {
+          setConnection('live')
+          // Every edit so far went out as a broadcast, which is not retained, so
+          // opening this page mid-form would otherwise show an empty board.
+          void ch.send({ type: 'broadcast', event: SYNC_EVENT, payload: {} })
+          return
+        }
+        if (status === 'CLOSED') {
+          setConnection('connecting')
+          rejoin()
+          return
+        }
+        setConnection(status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' ? 'error' : 'connecting')
+      })
+    }
+
+    join()
 
     return () => {
+      disposed = true
       clearTimeout(exitTimer.current)
-      void client.removeChannel(ch)
+      clearTimeout(retry)
+      if (current) void active.removeChannel(current)
+      current = null
     }
   }, [])
 
