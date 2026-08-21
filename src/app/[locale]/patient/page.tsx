@@ -18,11 +18,10 @@ export default async function PatientPage({ params }: { params: Promise<{ locale
 
   return (
     <main className="page-shell pb-20 pt-6 sm:pt-10">
-      {/* Nothing beside the form on this page. A reading width, left-aligned so
-          it starts on the logo's line rather than centred in the viewport. */}
-      <div className="max-w-3xl">
-        <IntakeForm dict={getDictionary(locale)} locale={locale} />
-      </div>
+      {/* Full shell width, so both edges line up with the header rather than
+          just the left one. Same container as the staff board, which means the
+          two pages now sit on exactly the same grid. */}
+      <IntakeForm dict={getDictionary(locale)} locale={locale} />
     </main>
   )
 }
