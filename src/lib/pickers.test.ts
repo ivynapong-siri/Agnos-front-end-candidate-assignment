@@ -8,6 +8,7 @@ import { CENTRE, ORBIT, orbitFrames, radiusAt, restingPosition } from './orbit'
 import { COUNTRIES, composePhone, flagFor, parsePhone } from './phone'
 import { FIELDS, displayValue } from './fields'
 import { CATCH_PADDING, MAX_PULL, magneticPull } from './magnetic'
+import { panelTop } from './anchor'
 
 /**
  * The custom date and phone controls replaced native ones, which means their
@@ -310,4 +311,32 @@ test('a button leans towards the pointer, and only when the pointer is near', ()
   // Hidden at this breakpoint: a zero-sized box would otherwise send the button
   // reaching for the top-left of the viewport.
   assert.deepEqual(magneticPull(500, 500, { left: 0, top: 0, right: 0, bottom: 0 }), { x: 0, y: 0 })
+})
+
+
+test('a dropdown opens where it can actually be seen', () => {
+  // A 288px panel, the tallest these get, on a 700px phone screen.
+  const H = 700
+  const panel = 288
+
+  // Room underneath: it opens below the control, 6px clear of it.
+  assert.equal(panelTop(200, 248, panel, H), 254)
+
+  // No room underneath: it flips above rather than running off the bottom.
+  // This is the case that was broken — the panel used to be pinned to the
+  // bottom of the layout viewport, which on a phone is below the screen.
+  const flipped = panelTop(560, 608, panel, H)
+  assert.ok(flipped + panel <= 560, `expected it above the control, got ${flipped}`)
+  assert.ok(flipped >= 8, `expected it on screen, got ${flipped}`)
+
+  // Wherever the control is, the panel stays on screen at both ends.
+  for (let top = -40; top < H + 40; top += 20) {
+    const y = panelTop(top, top + 48, panel, H)
+    assert.ok(y >= 8, `top ${top} put the panel at ${y}, above the screen`)
+    assert.ok(y + panel <= H - 8 + 1, `top ${top} put the panel at ${y}, past the bottom`)
+  }
+
+  // A panel taller than the screen still starts at the top rather than
+  // somewhere above it; max-height keeps the rest reachable by scrolling.
+  assert.equal(panelTop(300, 348, 900, H), 8)
 })

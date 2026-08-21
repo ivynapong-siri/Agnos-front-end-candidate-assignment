@@ -78,6 +78,7 @@ export function DateField({
       if (!isOpen) setMode('days')
       // Re-anchor while open so scrolling does not leave the calendar behind.
       untrack.current?.()
+      if (isOpen && trigger.current) anchorPopover(element, trigger.current, 304)
       untrack.current = isOpen && trigger.current ? keepAnchored(element, trigger.current, 304) : null
     }
     element.addEventListener('toggle', onToggle)
@@ -92,9 +93,16 @@ export function DateField({
     const start = fromIsoDate(value) ?? new Date()
     setView({ year: start.getFullYear(), month: start.getMonth() })
     setMode(value ? 'days' : 'years')
-    anchorPopover(panel.current, trigger.current, 304)
     panel.current.showPopover()
   }
+
+  // Re-anchored once the contents are on the page, and again when switching
+  // between years, months and days — each is a different height, and the panel
+  // is placed from its height.
+  useEffect(() => {
+    if (!open || !panel.current || !trigger.current) return
+    anchorPopover(panel.current, trigger.current, 304)
+  }, [open, mode, view.year, view.month])
 
   const pick = (iso: string) => {
     onChange(iso)

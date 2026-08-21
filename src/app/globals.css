@@ -345,19 +345,21 @@
 .listbox-panel {
   position: fixed;
   margin: 0;
-  /* --lb-sheet-bottom is the gap between the layout viewport and what is
-     actually on screen; see sheetOffset() in lib/anchor.ts. dvh rather than vh
-     for the same reason — vh is measured with the address bar hidden, so 70vh
-     can be taller than the screen currently is. */
-  inset: auto 0 var(--lb-sheet-bottom, 0px) 0;
+  /* Only ever `top` and `left`, both handed over by anchorPopover from the
+     trigger's own rect. Nothing here asks where the bottom of the screen is,
+     which is the question phones answer differently depending on whether the
+     address bar happens to be showing. */
+  inset: var(--lb-y, 0px) auto auto var(--lb-x, 0px);
   display: flex;
-  width: 100%;
-  max-height: 70dvh;
+  width: var(--lb-w, 16rem);
+  max-width: calc(100vw - 1rem);
+  /* Keep in step with PANEL_MAX_HEIGHT in lib/anchor.ts. */
+  max-height: min(18rem, 60dvh);
   flex-direction: column;
   overflow: hidden;
-  border-radius: 1.5rem 1.5rem 0 0;
+  border-radius: 1rem;
   opacity: 0;
-  transform: translateY(12px);
+  transform: translateY(8px);
   transition:
     opacity 0.18s ease-out,
     transform 0.18s ease-out,
@@ -365,32 +367,10 @@
     display 0.18s ease-out allow-discrete;
 }
 
-.listbox-panel:popover-open {
-  opacity: 1;
-  transform: none;
-}
-
 @starting-style {
   .listbox-panel:popover-open {
     opacity: 0;
     transform: translateY(12px);
-  }
-}
-
-@media (min-width: 640px) {
-  .listbox-panel {
-    width: var(--lb-w, 16rem);
-    /* Keep in step with PANEL_MAX_HEIGHT in lib/anchor.ts. */
-    max-height: 18rem;
-    border-radius: 1rem;
-  }
-
-  .listbox-panel[data-placement='below'] {
-    inset: var(--lb-y) auto auto var(--lb-x);
-  }
-
-  .listbox-panel[data-placement='above'] {
-    inset: auto auto var(--lb-b) var(--lb-x);
   }
 }
 

@@ -16,16 +16,14 @@ export const PANEL_MAX_HEIGHT = 288
 /**
  * Floor for the panel width. A trigger is free to be narrow — the phone country
  * code is 7.5rem — but its menu still has to fit a country name and a dial code
- * side by side. Matching the trigger there truncated every label to nothing and
- * left the rows overflowing sideways.
- *
- * 288 rather than a rounder number: the longest label in the list is the Thai
- * for the United Arab Emirates, and measured at 240 it still needed 42px more.
+ * side by side.
  */
 export const PANEL_MIN_WIDTH = 288
 
-/** Breathing room kept between the panel and the viewport edge. */
+/** Breathing room kept between the panel and the edge of the screen. */
 const GUTTER = 8
+/** Distance between the panel and the control it belongs to. */
+const GAP = 6
 
 /**
  * Widening the panel past its trigger means it can now run off the right edge,
@@ -36,46 +34,59 @@ export function clampLeft(left: number, width: number, viewportWidth: number): n
   return Math.max(GUTTER, Math.min(left, viewportWidth - width - GUTTER))
 }
 
-/**
- * Below the anchored breakpoint the panel is a sheet pinned to the bottom of the
- * screen — and "the bottom of the screen" is the part mobile gets wrong.
- *
- * `bottom: 0` on a fixed element means the bottom of the *layout* viewport. A
- * phone's layout viewport is the tall one, measured with the address bar hidden,
- * so while that bar is showing the sheet sits underneath it, out of sight. An
- * on-screen keyboard does the same thing, only worse.
- *
- * visualViewport reports what is actually on screen, so the gap between the two
- * is exactly how far up the sheet has to be held.
- */
-export function sheetOffset(): number {
-  const vv = typeof window === 'undefined' ? null : window.visualViewport
-  if (!vv) return 0
-  return Math.max(0, Math.round(window.innerHeight - (vv.height + vv.offsetTop)))
+/** Where the panel's top edge goes, given where the trigger is and how tall the
+ *  panel turned out to be. Below the trigger when it fits, above it when it does
+ *  not, and never past either edge of the screen. Pure — this is the arithmetic
+ *  that was getting the answer wrong, so it is the part worth testing. */
+export function panelTop(
+  triggerTop: number,
+  triggerBottom: number,
+  panelHeight: number,
+  viewportHeight: number,
+): number {
+  const below = triggerBottom + GAP
+  const fitsBelow = below + panelHeight <= viewportHeight - GUTTER
+  const wanted = fitsBelow ? below : triggerTop - GAP - panelHeight
+  const lowest = Math.max(GUTTER, viewportHeight - GUTTER - panelHeight)
+  return Math.min(Math.max(GUTTER, wanted), lowest)
 }
 
+/**
+ * Places a popover against the control that opened it.
+ *
+ * Everything here is measured with getBoundingClientRect and
+ * documentElement.clientWidth/Height, which are the same coordinate space
+ * `position: fixed` resolves against. Nothing asks where the bottom of the
+ * screen is.
+ *
+ * It used to. Below 640px the panel was a sheet pinned to the bottom of the
+ * viewport, and on a phone that is not where it looks: `bottom: 0` means the
+ * bottom of the *layout* viewport, measured with the address bar hidden. In
+ * LINE's in-app browser it opened almost entirely below the fold — the chevron
+ * flipped to say "open" and a sliver of the panel showed at the very edge.
+ * visualViewport was supposed to correct for that, and an in-app WebView does
+ * not report it reliably enough to build on.
+ *
+ * Call this *after* showPopover(): the panel has to be laid out before its
+ * height can be read, and the height decides whether it goes below the trigger
+ * or above it. Both happen synchronously, so the browser paints once.
+ */
 export function anchorPopover(panel: HTMLElement, trigger: HTMLElement, minWidth = 0): void {
-  panel.style.setProperty('--lb-sheet-bottom', `${sheetOffset()}px`)
-
+  const viewportWidth = document.documentElement.clientWidth
+  const viewportHeight = document.documentElement.clientHeight
   const box = trigger.getBoundingClientRect()
-  const below = window.innerHeight - box.bottom
-  const placeAbove = below < PANEL_MAX_HEIGHT && box.top > below
+
   const width = Math.min(
     Math.max(box.width, minWidth, PANEL_MIN_WIDTH),
-    window.innerWidth - GUTTER * 2,
+    viewportWidth - GUTTER * 2,
   )
-
-  panel.dataset.placement = placeAbove ? 'above' : 'below'
-  panel.style.setProperty('--lb-x', `${clampLeft(box.left, width, window.innerWidth)}px`)
+  // Width first: it decides how the options wrap, and therefore the height.
   panel.style.setProperty('--lb-w', `${width}px`)
-  panel.style.setProperty('--lb-y', `${box.bottom + 6}px`)
-  panel.style.setProperty('--lb-b', `${window.innerHeight - box.top + 6}px`)
-}
 
-/** Below this width the panel is a viewport-fixed bottom sheet and needs no
- *  anchoring, so scroll tracking is pointless — and would be actively wrong,
- *  since it would close the sheet when the page behind it moved. */
-const ANCHORED_FROM = 640
+  const height = panel.getBoundingClientRect().height
+  panel.style.setProperty('--lb-x', `${clampLeft(box.left, width, viewportWidth)}px`)
+  panel.style.setProperty('--lb-y', `${panelTop(box.top, box.bottom, height, viewportHeight)}px`)
+}
 
 /**
  * A trigger scrolled out of sight leaves the panel floating beside nothing,
@@ -107,35 +118,29 @@ export function isOutOfView(top: number, bottom: number, viewportHeight: number)
  * Returns the teardown.
  */
 export function keepAnchored(panel: HTMLElement, trigger: HTMLElement, minWidth = 0): () => void {
-  if (window.innerWidth < ANCHORED_FROM) {
-    // Not anchored to anything down here, but the sheet still has to follow the
-    // visible part of the screen: the address bar collapses as you scroll and a
-    // keyboard can open under it, and either one leaves it stranded off-screen.
-    const vv = window.visualViewport
-    if (!vv) return () => {}
-    const track = () => panel.style.setProperty('--lb-sheet-bottom', `${sheetOffset()}px`)
-    vv.addEventListener('resize', track)
-    vv.addEventListener('scroll', track)
-    return () => {
-      vv.removeEventListener('resize', track)
-      vv.removeEventListener('scroll', track)
-    }
-  }
-
   const reposition = () => {
     const box = trigger.getBoundingClientRect()
-    if (isOutOfView(box.top, box.bottom, window.innerHeight)) {
+    if (isOutOfView(box.top, box.bottom, document.documentElement.clientHeight)) {
       panel.hidePopover()
       return
     }
     anchorPopover(panel, trigger, minWidth)
   }
 
+  // Capture-phase scroll, because the page is not the only thing that can
+  // scroll — an ancestor with its own overflow moves the trigger too, and those
+  // events do not bubble.
   window.addEventListener('scroll', reposition, { capture: true, passive: true })
   window.addEventListener('resize', reposition)
+  // An on-screen keyboard resizes the visual viewport without resizing the
+  // window, and it can cover the panel completely.
+  window.visualViewport?.addEventListener('resize', reposition)
+  window.visualViewport?.addEventListener('scroll', reposition)
 
   return () => {
     window.removeEventListener('scroll', reposition, { capture: true })
     window.removeEventListener('resize', reposition)
+    window.visualViewport?.removeEventListener('resize', reposition)
+    window.visualViewport?.removeEventListener('scroll', reposition)
   }
 }

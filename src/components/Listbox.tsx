@@ -105,6 +105,7 @@ export function Listbox({
       setOpen(isOpen)
       // Re-anchor while open so scrolling does not leave the panel behind.
       untrack.current?.()
+      if (isOpen && trigger.current) anchorPopover(element, trigger.current)
       untrack.current = isOpen && trigger.current ? keepAnchored(element, trigger.current) : null
     }
     element.addEventListener('toggle', onToggle)
@@ -121,13 +122,20 @@ export function Listbox({
   const show = () => {
     const element = panel.current
     if (!element || !trigger.current) return
-    anchorPopover(element, trigger.current)
 
     setEverOpened(true)
     setQuery('')
     setActive(Math.max(0, options.findIndex((option) => option.value === value)))
     element.showPopover()
   }
+
+  // Re-anchored once the contents are on the page. The panel is positioned from
+  // its own height, and on the first open that height is zero until React has
+  // rendered the options — and it changes again as the search filters them.
+  useEffect(() => {
+    if (!open || !panel.current || !trigger.current) return
+    anchorPopover(panel.current, trigger.current)
+  }, [open, everOpened, filtered.length])
 
   const commit = (next: string) => {
     onChange(next)
