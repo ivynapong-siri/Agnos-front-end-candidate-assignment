@@ -309,7 +309,21 @@ export function IntakeForm({ dict, locale }: { dict: Dictionary; locale: Locale 
       <form onSubmit={onSubmit} noValidate>
         {/* Sticky so the patient can always see how much is left, per IxDF's
             progress-indicator guidance, without a multi-step wizard. */}
-        <div className="sticky top-16 z-20 -mx-4 mb-6 border-b border-brand-wash bg-paper/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:top-20 sm:px-6 lg:mx-0 lg:px-0">
+        {/*
+          A pill that floats over the form, not a slab bolted across it.
+
+          It used to be a full-width strip with a single bottom border and, from
+          lg, no horizontal padding at all — so its background ended exactly
+          where the cards' did and every card slid under a hard vertical cut on
+          both sides. Rounded to the same family as the cards, with a border all
+          the way round and a shadow, it reads as something sitting above the
+          page instead of something slicing through it.
+
+          Sticking half a rem below the header rather than flush against it: the
+          gap is what makes it look like it is floating, and the header's own
+          blur covers what passes behind.
+        */}
+        <div className="sticky top-[calc(4rem+0.5rem)] z-20 mb-6 rounded-2xl border border-brand-wash bg-white/85 px-4 py-3 shadow-card backdrop-blur-xl sm:top-[calc(5rem+0.5rem)] sm:px-5">
           <div className="flex items-center gap-4">
             <div className="min-w-0 flex-1">
               <LiveMirror sessionId={sessionId} startedAt={startedAt} publish={publish} dict={dict} />
