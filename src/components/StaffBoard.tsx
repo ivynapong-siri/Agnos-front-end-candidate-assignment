@@ -58,7 +58,19 @@ export function StaffBoard({ dict, locale }: { dict: Dictionary; locale: Locale 
     <>
       {!realtimeConfigured && <SetupNotice dict={dict} locale={locale} />}
 
-      <div className="sticky top-16 z-20 -mx-4 mb-6 border-b border-brand-wash bg-paper/95 px-4 py-4 backdrop-blur sm:-mx-6 sm:top-20 sm:px-6">
+      {/*
+        A card that floats over the board, matching the progress bar on the
+        patient form — same radius, same border, same frosted fill, so the two
+        pages treat the same idea the same way.
+
+        It used to be a full-width strip with a single bottom border, running
+        past the cards on both sides. Every card slid under a hard edge, and the
+        strip read as a seam across the page rather than as something sitting
+        above it. Matching the cards' width means a card passing behind is
+        covered rather than clipped, and the half-rem gap under the header is
+        what makes it read as floating at all.
+      */}
+      <div className="sticky top-[calc(4rem+0.5rem)] z-20 mb-6 rounded-2xl border border-brand-wash bg-white/85 px-4 py-3 shadow-card backdrop-blur-xl sm:top-[calc(5rem+0.5rem)] sm:px-5">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <div className="mr-auto">
             <h1 className="text-xl font-bold text-navy-900 sm:text-2xl">{dict.staff.title}</h1>
