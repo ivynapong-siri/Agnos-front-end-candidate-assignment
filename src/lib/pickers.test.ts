@@ -7,6 +7,7 @@ import { clampLeft, isOutOfView } from './anchor'
 import { CENTRE, ORBIT, orbitFrames, radiusAt, restingPosition } from './orbit'
 import { COUNTRIES, composePhone, flagFor, parsePhone } from './phone'
 import { FIELDS, displayValue } from './fields'
+import { pickActiveSection } from './scrollspy'
 
 /**
  * The custom date and phone controls replaced native ones, which means their
@@ -259,4 +260,65 @@ test('dots stay on the orbit and are evenly spaced at rest', () => {
   // atan2 wraps past pi, so compare the third dot modulo a full turn.
   const wrapped = (angles[2] - angles[1] + 2 * Math.PI) % (2 * Math.PI)
   assert.ok(Math.abs(wrapped - third) < 1e-3, `spacing was ${wrapped.toFixed(5)}`)
+})
+
+
+/* ------------------------------------------------------------------ *
+ * Scroll spy
+ *
+ * IntersectionObserver needs a browser running frames, so the observer itself
+ * cannot be exercised here. The decision it feeds can be.
+ * ------------------------------------------------------------------ */
+
+const ORDER = ['personal', 'contact', 'background'] as const
+
+test('the picture follows the section the reader is actually looking at', () => {
+  const at = (entries: Record<string, number>) => new Map(Object.entries(entries))
+
+  assert.equal(
+    pickActiveSection(ORDER, at({ personal: 0.9, contact: 0.1 }), 'personal'),
+    'personal',
+  )
+  assert.equal(
+    pickActiveSection(ORDER, at({ personal: 0.1, contact: 0.8 }), 'personal'),
+    'contact',
+  )
+  assert.equal(
+    pickActiveSection(ORDER, at({ contact: 0.2, background: 0.7 }), 'contact'),
+    'background',
+  )
+
+  // A section taller than the viewport can never be half visible. This is the
+  // case a lone threshold of 0.5 would have stranded: nothing ever qualifies,
+  // so the panel would keep whatever it last showed. Most-visible-wins does
+  // not care how tall the section is.
+  assert.equal(
+    pickActiveSection(ORDER, at({ contact: 0.18, background: 0.34 }), 'personal'),
+    'background',
+    'a section that never reaches half the viewport can still be the active one',
+  )
+
+  // Scrolled past the form, or between two sections: hold, never blank.
+  assert.equal(pickActiveSection(ORDER, at({}), 'background'), 'background')
+  assert.equal(
+    pickActiveSection(ORDER, at({ personal: 0, contact: 0, background: 0 }), 'contact'),
+    'contact',
+  )
+
+  // Exactly balanced on a boundary keeps the earlier one, so the picture
+  // settles instead of flickering between two frames.
+  assert.equal(
+    pickActiveSection(ORDER, at({ personal: 0.5, contact: 0.5 }), 'personal'),
+    'personal',
+  )
+  assert.equal(
+    pickActiveSection(ORDER, at({ personal: 0.5, contact: 0.5 }), 'contact'),
+    'personal',
+  )
+
+  // Anything not in the running order is ignored.
+  assert.equal(
+    pickActiveSection(ORDER, at({ somethingElse: 1, contact: 0.4 }), 'personal'),
+    'contact',
+  )
 })

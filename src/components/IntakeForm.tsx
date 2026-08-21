@@ -1,7 +1,6 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import Image from 'next/image'
 import { FormProvider, useForm, useFormContext, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { ArtDone, SectionIcon } from './Art'
@@ -17,19 +16,12 @@ import {
   SPAN_CLASS,
   countFilled,
   displayValue,
-  type SectionId,
 } from '@/lib/fields'
 import { makePatientSchema, type PatientForm } from '@/lib/schema'
 import { realtimeConfigured, usePatientPresence } from '@/lib/realtime'
 
 const TOTAL_REQUIRED = REQUIRED_FIELDS.length
 
-/** A photograph per section, filling the space beside the questions. */
-const SECTION_IMAGE: Record<SectionId, string> = {
-  personal: '/section-personal.jpg',
-  contact: '/section-contact.jpg',
-  background: '/section-background.jpg',
-}
 const SESSION_KEY = 'agnos.sessionId'
 const DRAFT_KEY = 'agnos.draft'
 
@@ -203,7 +195,7 @@ function ThankYou({
   const answered = FIELDS.filter((field) => values[field.name].trim() !== '')
 
   return (
-    <div className="animate-rise max-w-3xl rounded-3xl border border-brand-wash bg-white p-6 text-center shadow-card sm:p-10">
+    <div className="animate-rise rounded-3xl border border-brand-wash bg-white p-6 text-center shadow-card sm:p-10">
       <ArtDone className="mx-auto h-28 w-28" />
       <h1 className="mt-4 text-2xl font-bold text-navy-900 sm:text-3xl">
         {fill(dict.receipt.thanks, { name: values.firstName })}
@@ -316,7 +308,7 @@ export function IntakeForm({ dict, locale }: { dict: Dictionary; locale: Locale 
       <form onSubmit={onSubmit} noValidate>
         {/* Sticky so the patient can always see how much is left, per IxDF's
             progress-indicator guidance, without a multi-step wizard. */}
-        <div className="sticky top-16 z-20 -mx-4 mb-6 max-w-3xl border-b border-brand-wash bg-paper/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:top-20 sm:px-6 lg:mx-0 lg:px-0">
+        <div className="sticky top-16 z-20 -mx-4 mb-6 border-b border-brand-wash bg-paper/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:top-20 sm:px-6 lg:mx-0 lg:px-0">
           <div className="flex items-center gap-4">
             <div className="min-w-0 flex-1">
               <LiveMirror sessionId={sessionId} startedAt={startedAt} publish={publish} dict={dict} />
@@ -326,20 +318,15 @@ export function IntakeForm({ dict, locale }: { dict: Dictionary; locale: Locale 
         </div>
 
         {FIELDS_BY_SECTION.map((section, index) => (
-          /*
-            One row per section: the questions keep their 48rem reading measure
-            and a picture fills the space beside them, which the page's own
-            width was leaving empty. Hidden below lg, where there is no space
-            to give and a photograph would only push the next question further
-            down the screen.
-          */
-          <div
-            key={section.id}
-            className="mb-6 lg:grid lg:grid-cols-[minmax(0,48rem)_minmax(0,1fr)] lg:items-stretch lg:gap-6"
-          >
           <section
+            key={section.id}
+            id={`section-${section.id}`}
+            // Read by SectionMedia, which watches these to decide which picture
+            // to show. A data attribute rather than a callback prop: the media
+            // panel is a sibling in the page, not a child of the form.
+            data-intake-section={section.id}
             aria-labelledby={`${section.id}-heading`}
-            className="mb-6 rounded-3xl border border-brand-wash bg-white p-5 shadow-card sm:p-7 lg:mb-0"
+            className="mb-6 scroll-mt-28 rounded-3xl border border-brand-wash bg-white p-5 shadow-card sm:p-7"
           >
             <div className="mb-6 flex gap-4">
               <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-brand-wash">
@@ -361,26 +348,9 @@ export function IntakeForm({ dict, locale }: { dict: Dictionary; locale: Locale 
               ))}
             </div>
           </section>
-
-          {/* Decorative, so alt is empty: it says nothing the labels beside it
-              do not already say, and announcing it would only lengthen the
-              form for someone listening to it. */}
-          <div className="relative hidden overflow-hidden rounded-3xl lg:block">
-            <Image
-              src={SECTION_IMAGE[section.id]}
-              alt=""
-              fill
-              /* No quality prop: next.config only honours 75 and 85, and 80
-                 would have fallen back to 75 without saying so. These are
-                 photographs in a 440px column — the default is right. */
-              sizes="(min-width: 1024px) 30vw, 0px"
-              className="select-none object-cover"
-            />
-          </div>
-          </div>
         ))}
 
-        <div className="max-w-3xl space-y-4 rounded-3xl border border-brand-wash bg-white p-5 shadow-card sm:p-7">
+        <div className="space-y-4 rounded-3xl border border-brand-wash bg-white p-5 shadow-card sm:p-7">
           <ErrorSummary dict={dict} />
 
           {/* IxDF: put the privacy promise where the decision is made. */}
