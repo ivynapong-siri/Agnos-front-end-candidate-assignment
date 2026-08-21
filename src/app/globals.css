@@ -64,13 +64,6 @@
   html {
     -webkit-text-size-adjust: 100%;
     scroll-behavior: smooth;
-    /*
-      Reserve the scrollbar's width whether or not the page needs one. Without
-      it a short page is 15px wider than a long one, every `mx-auto` container
-      centres against a different width, and the logo lands on 104 on the
-      landing page and 97 on the form — a visible twitch on every navigation.
-    */
-    scrollbar-gutter: stable;
   }
 
   body {
@@ -445,7 +438,31 @@
   identical" is exactly the thing a copied class list stops guaranteeing.
 */
 .page-shell {
-  @apply mx-auto w-full max-w-7xl px-4 sm:px-6;
+  @apply w-full max-w-7xl px-4 sm:px-6;
+  /*
+    Centred against 100vw rather than by `mx-auto`, and that is the whole
+    difference.
+
+    `mx-auto` centres inside the parent, whose width is the viewport minus
+    whatever scrollbar is currently showing. A page that scrolls is therefore
+    15px narrower than one that does not, and the logo landed on 104 on the
+    landing page and 97 on the form — a twitch on every navigation.
+
+    `100vw` includes the scrollbar, so it is the same number either way, and a
+    margin computed from it puts the left edge in the same place on every page.
+    Reserving the scrollbar with `scrollbar-gutter: stable` also fixed the
+    twitch, but it left 15px down the right that nothing inside body can paint,
+    and on the landing page — where artwork runs to the edge — that read as a
+    stripe.
+
+    max() keeps the margin at zero below 80rem, where the shell is simply full
+    width. min(100%, 80rem) rather than a plain max-width so the margin and the
+    width together can never exceed the parent and bring on a sideways scroll.
+  */
+  width: min(100%, 80rem);
+  max-width: none;
+  margin-left: max(0px, calc((100vw - 80rem) / 2));
+  margin-right: 0;
 }
 
 /* ------------------------------------------------------------------ *
