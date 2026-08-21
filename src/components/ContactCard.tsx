@@ -116,10 +116,26 @@ export function ContactCard({ dict, channels }: { dict: Dictionary; channels?: C
         </ul>
       </div>
 
+      {/*
+        In the page flow until lg, floating above it after that.
+
+        Floating everywhere, it stole taps. The button is 144x48 pinned to the
+        bottom-right, and the patient form is full width on a phone, so whichever
+        field happened to be in that band lost its right-hand 39% to the button —
+        confirmed by hit-testing the middle of a field and getting the button
+        back. It landed hardest on the contact and background sections, because
+        those are the ones you are scrolled to for most of the form, and their
+        controls are dropdowns where a swallowed tap simply does nothing.
+
+        lg is where it stops touching anything: the form is 768px wide and the
+        button starts 168px from the right edge, so they clear each other from
+        about 1000px up. Below that it sits at the end of the page instead,
+        where it covers nothing.
+      */}
       <GlassButton
         type="button"
         popoverTarget={PANEL_ID}
-        className="contact-trigger enter enter-support fixed bottom-4 right-4 z-30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand sm:bottom-6 sm:right-6"
+        className="contact-trigger enter enter-support z-30 mx-auto mb-10 flex w-fit focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand lg:fixed lg:bottom-6 lg:right-6 lg:mx-0 lg:mb-0"
       >
         <QuestionIcon />
         <span className="text-sm">{dict.contact.open}</span>
