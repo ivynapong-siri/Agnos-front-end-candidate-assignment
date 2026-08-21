@@ -90,11 +90,14 @@ export default async function LocaleLayout({
           afterInteractive, not beforeInteractive: analytics has no business
           delaying the form's first paint.
 
-          Clarity records session replays. Everything that shows a patient's
-          answers back — the form, the receipt, the front desk — carries
-          data-clarity-mask, so what reaches Microsoft is the shape of the page
-          and where people struggled, never what anyone typed. See the note in
-          the README.
+          Clarity records session replays, and nothing here is masked: seeing
+          what was actually typed is the point, because that is what makes a
+          replay useful for finding a bug. That is a deliberate choice for a
+          demonstration, and the form says so where the patient can read it —
+          along with a request not to enter anything real. Turning it back into
+          something a clinic could run means restoring data-clarity-mask on the
+          form, the receipt and the front desk list, and putting that sentence
+          back.
         */}
         {CLARITY_ID && (
           <Script

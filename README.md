@@ -247,7 +247,16 @@ to the Buddhist era halfway through the file.
 
 These are deliberate, and each has an obvious upgrade path.
 
-- **Nothing is persisted.** Sessions live in memory in each browser tab, and the
+- **Session replays are recorded, unmasked.** Microsoft Clarity runs on the deployed
+  site with nothing masked, because a replay that hides what was typed cannot show
+  you the bug that was typed into. That is a choice for a demonstration, not for a
+  clinic: the form says so where the patient reads it and asks them not to enter
+  anything real. Making this deployable for real means restoring `data-clarity-mask`
+  on the form, the receipt and the front desk list — the last one matters most,
+  since there the names and phone numbers are page text rather than input values,
+  and Clarity's own input masking would not cover them. Analytics is behind
+  `NEXT_PUBLIC_CLARITY_ID`, so a clone with no id set records nothing.
+- **Nothing is persisted** *by the app itself*. Sessions live in memory in each browser tab, and the
   in-progress draft lives in `sessionStorage`, which dies with the tab. Reloading the
   dashboard clears the board, and the CSV can only export what the open dashboard has
   seen. For a form that is entirely PII this is the correct default and less code than

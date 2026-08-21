@@ -52,7 +52,7 @@ const en = {
     progress: '{filled} of {total} required answers',
     progressLabel: 'Form completion',
     privacy:
-      'Sent to the front desk over an encrypted connection and shown only to staff on duty. Nothing is written to a database, and closing this page clears it.',
+      'Sent to the front desk over an encrypted connection and shown only to staff on duty. Nothing is written to a database, and closing this page clears it — but this demonstration records screen sessions to help find bugs, so please do not enter real information.',
     submit: 'Submit my information',
     errorSummary_one: '1 answer needs another look',
     errorSummary_other: '{count} answers need another look',
