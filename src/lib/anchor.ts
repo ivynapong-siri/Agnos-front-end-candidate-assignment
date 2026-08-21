@@ -36,7 +36,27 @@ export function clampLeft(left: number, width: number, viewportWidth: number): n
   return Math.max(GUTTER, Math.min(left, viewportWidth - width - GUTTER))
 }
 
+/**
+ * Below the anchored breakpoint the panel is a sheet pinned to the bottom of the
+ * screen — and "the bottom of the screen" is the part mobile gets wrong.
+ *
+ * `bottom: 0` on a fixed element means the bottom of the *layout* viewport. A
+ * phone's layout viewport is the tall one, measured with the address bar hidden,
+ * so while that bar is showing the sheet sits underneath it, out of sight. An
+ * on-screen keyboard does the same thing, only worse.
+ *
+ * visualViewport reports what is actually on screen, so the gap between the two
+ * is exactly how far up the sheet has to be held.
+ */
+export function sheetOffset(): number {
+  const vv = typeof window === 'undefined' ? null : window.visualViewport
+  if (!vv) return 0
+  return Math.max(0, Math.round(window.innerHeight - (vv.height + vv.offsetTop)))
+}
+
 export function anchorPopover(panel: HTMLElement, trigger: HTMLElement, minWidth = 0): void {
+  panel.style.setProperty('--lb-sheet-bottom', `${sheetOffset()}px`)
+
   const box = trigger.getBoundingClientRect()
   const below = window.innerHeight - box.bottom
   const placeAbove = below < PANEL_MAX_HEIGHT && box.top > below
@@ -87,7 +107,20 @@ export function isOutOfView(top: number, bottom: number, viewportHeight: number)
  * Returns the teardown.
  */
 export function keepAnchored(panel: HTMLElement, trigger: HTMLElement, minWidth = 0): () => void {
-  if (window.innerWidth < ANCHORED_FROM) return () => {}
+  if (window.innerWidth < ANCHORED_FROM) {
+    // Not anchored to anything down here, but the sheet still has to follow the
+    // visible part of the screen: the address bar collapses as you scroll and a
+    // keyboard can open under it, and either one leaves it stranded off-screen.
+    const vv = window.visualViewport
+    if (!vv) return () => {}
+    const track = () => panel.style.setProperty('--lb-sheet-bottom', `${sheetOffset()}px`)
+    vv.addEventListener('resize', track)
+    vv.addEventListener('scroll', track)
+    return () => {
+      vv.removeEventListener('resize', track)
+      vv.removeEventListener('scroll', track)
+    }
+  }
 
   const reposition = () => {
     const box = trigger.getBoundingClientRect()

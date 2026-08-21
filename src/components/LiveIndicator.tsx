@@ -17,7 +17,16 @@ export function LiveIndicator({ connection, dict }: { connection: Connection; di
       aria-live="polite"
     >
       <span className={`h-2 w-2 shrink-0 rounded-full ${style.dot} ${style.pulse ? 'animate-breathe' : ''}`} />
-      {dict.connection[connection]}
+      {/*
+        The label is the dot's meaning, not decoration, so it never leaves the
+        accessibility tree — it only stops taking layout below sm. At 375 it was
+        105px of a 327px row, which squeezed "answered 2 of 9" onto two lines and
+        pushed the sticky bar to 82px tall. On a phone that is a tenth of the
+        screen permanently covered, and anything scrolled under it cannot be
+        tapped.
+      */}
+      <span className="hidden sm:inline">{dict.connection[connection]}</span>
+      <span className="sr-only sm:hidden">{dict.connection[connection]}</span>
     </span>
   )
 }
