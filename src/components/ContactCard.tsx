@@ -1,5 +1,5 @@
+import { ContactDock } from './ContactDock'
 import { GlassButton } from './GlassButton'
-import { Magnetic } from './Magnetic'
 import type { Dictionary } from '@/i18n'
 
 /**
@@ -117,31 +117,7 @@ export function ContactCard({ dict, channels }: { dict: Dictionary; channels?: C
         </ul>
       </div>
 
-      {/*
-        In the page flow until lg, floating above it after that.
-
-        Floating everywhere, it stole taps. The button is 144x48 pinned to the
-        bottom-right, and the patient form is full width on a phone, so whichever
-        field happened to be in that band lost its right-hand 39% to the button —
-        confirmed by hit-testing the middle of a field and getting the button
-        back. It landed hardest on the contact and background sections, because
-        those are the ones you are scrolled to for most of the form, and their
-        controls are dropdowns where a swallowed tap simply does nothing.
-
-        Where it stops touching anything moved when the patient form went full
-        width. The shell caps at 1280 with 24px of padding and the button starts
-        168px from the right edge, so the two only clear each other once the
-        viewport passes about 1568 — 1280 and 1440 laptops both still collided.
-        Hit-testing at 1280 handed the button back instead of the field for
-        email, nationality, religion and the emergency relationship. It floats
-        from 1600 now, with 36px to spare, and sits at the end of the page below
-        that, covering nothing.
-      */}
-      {/* The positioning lives on the wrapper, not the button. Magnetic applies
-          a transform, and a transformed ancestor becomes the containing block
-          for any fixed descendant — leaving it on the button would drop the
-          floating trigger out of its corner. */}
-      <Magnetic className="enter enter-support z-30 mx-auto mb-10 flex w-fit min-[1600px]:fixed min-[1600px]:bottom-6 min-[1600px]:right-6 min-[1600px]:mx-0 min-[1600px]:mb-0">
+      <ContactDock>
         <GlassButton
           type="button"
           popoverTarget={PANEL_ID}
@@ -150,7 +126,7 @@ export function ContactCard({ dict, channels }: { dict: Dictionary; channels?: C
           <QuestionIcon />
           <span className="text-sm">{dict.contact.open}</span>
         </GlassButton>
-      </Magnetic>
+      </ContactDock>
     </>
   )
 }
