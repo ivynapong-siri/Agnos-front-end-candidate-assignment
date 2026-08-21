@@ -99,7 +99,15 @@ export function AuthShell({
             priority
             quality={85}
             sizes="(min-width: 1024px) 50vw, 0px"
-            className="pointer-events-none select-none object-cover object-right"
+            /*
+              87%, not `right`. The box is portrait, so cover shows only about
+              a third of a 2.35:1 banner. Measuring the source column by column,
+              the artwork occupies 56%-88% of its width and is densest at 77%;
+              pinning the right edge framed 67%-100%, which pulls in the empty
+              margin past the folder and leaves the subject sitting against the
+              left of the box. 87% centres the window on the artwork instead.
+            */
+            className="pointer-events-none select-none object-cover object-[87%_center]"
           />
 
           {/* Capped: at the full column width these ran to 624px, which is a
