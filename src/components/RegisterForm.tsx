@@ -63,7 +63,7 @@ export function RegisterForm({ dict, locale }: { dict: Dictionary; locale: Local
 
   const onSubmit = handleSubmit((values) => {
     writeStaffSession({ name: values.name.trim(), email: values.email.trim() })
-    router.push(`/${locale}/staff`)
+    router.push(`/${locale}/staff${window.location.search}`)
   })
 
   return (

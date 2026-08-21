@@ -35,7 +35,10 @@ export function RequireStaff({
   const signedOut = account === null
 
   useEffect(() => {
-    if (signedOut) router.replace(`/${locale}/staff/login`)
+    // Carry the query across. `?room=` is how two people share a private
+    // channel, and it lives in the URL — bouncing through sign-in without it
+    // landed staff in the default room while the patient waited in theirs.
+    if (signedOut) router.replace(`/${locale}/staff/login${window.location.search}`)
   }, [signedOut, locale, router])
 
   // Not known yet: the first paint, and the frame hydration runs on.

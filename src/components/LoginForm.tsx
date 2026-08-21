@@ -65,7 +65,7 @@ export function LoginForm({ dict, locale }: { dict: Dictionary; locale: Locale }
       return
     }
     writeStaffSession({ name: SAMPLE_STAFF.name, email: SAMPLE_STAFF.email }, values.remember)
-    router.push(`/${locale}/staff`)
+    router.push(`/${locale}/staff${window.location.search}`)
   })
 
   return (
