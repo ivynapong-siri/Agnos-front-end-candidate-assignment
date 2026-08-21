@@ -100,14 +100,18 @@ export function AuthShell({
             quality={85}
             sizes="(min-width: 1024px) 50vw, 0px"
             /*
-              87%, not `right`. The box is portrait, so cover shows only about
-              a third of a 2.35:1 banner. Measuring the source column by column,
-              the artwork occupies 56%-88% of its width and is densest at 77%;
-              pinning the right edge framed 67%-100%, which pulls in the empty
-              margin past the folder and leaves the subject sitting against the
-              left of the box. 87% centres the window on the artwork instead.
+              81%, not `right`. The box is portrait, so cover shows only about a
+              third of a 2.35:1 banner, and pinning the right edge framed
+              67%-100% — a third of the panel spent on the empty margin past the
+              folder, with the subject shoved against the left.
+
+              Sampling the source column by column put the artwork at 56%-88%
+              and densest at 77%, which argued for 87%. 81% is where it was
+              settled by eye on the page, and that wins: the density heuristic
+              measures ink, not composition, and the folder reads better with a
+              little room on its right than centred on its centre of mass.
             */
-            className="pointer-events-none select-none object-cover object-[87%_center]"
+            className="pointer-events-none select-none object-cover object-[81%_center]"
           />
 
           {/* Capped: at the full column width these ran to 624px, which is a
