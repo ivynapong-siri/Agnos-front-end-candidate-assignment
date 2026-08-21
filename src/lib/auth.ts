@@ -25,7 +25,7 @@ export const MAX_FIELD = 120
  */
 export const SAMPLE_STAFF = {
   name: 'ณิชา พงษ์สวัสดิ์',
-  email: 'nicha@agnos.clinic',
+  email: 'napong.sirivat@gmail.com',
   password: 'agnos-demo-2026',
   invite: 'AGNOS-DESK',
 } as const
