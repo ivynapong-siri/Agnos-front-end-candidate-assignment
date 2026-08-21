@@ -22,10 +22,11 @@ agnos-intake/
 ├── src/lib/                   Everything that is not a React component.
 │   ├── schema.ts              Zod factory + canonical option values.
 │   ├── fields.ts              The field manifest. Structure, no copy.
-│   ├── realtime.ts            Supabase channel, presence hooks, status rules.
+│   ├── realtime.ts            Supabase channel: broadcast + presence, status rules.
+│   ├── auth.ts                Staff auth schemas and the demo session store.
 │   ├── export.ts              Excel-safe CSV.
 │   ├── schema.test.ts         Validation rules.
-│   ├── presence.test.ts       The presence-merge reducer.
+│   ├── presence.test.ts       The merge reducer, and the delivery rules.
 │   ├── export.test.ts         CSV escaping, injection, Thai, columns.
 │   └── i18n.test.ts           Dictionary parity and completeness.
 │
@@ -37,6 +38,13 @@ agnos-intake/
 │   ├── StatusBadge.tsx        The five presence states, as a lookup table.
 │   ├── LanguageToggle.tsx     Swaps the first path segment.
 │   ├── LiveIndicator.tsx      Connection pill + the missing-credentials notice.
+│   ├── AuthShell.tsx          Two-column frame for the three staff screens.
+│   ├── AuthField.tsx          Labelled input + password reveal.
+│   ├── SampleFill.tsx         The "fill it in for me" tick box.
+│   ├── LoginForm.tsx          Sign in.
+│   ├── RegisterForm.tsx       Registration, gated on an invite code.
+│   ├── ResetForm.tsx          Password reset request.
+│   ├── StaffIdentity.tsx      Who is signed in, and signing out.
 │   ├── Logo.tsx               The Agnos wordmark, inlined.
 │   └── Art.tsx                Every illustration and icon.
 │
@@ -46,7 +54,11 @@ agnos-intake/
         ├── layout.tsx         The root layout. Font, metadata, header, wash.
         ├── page.tsx           Landing: patient or staff.
         ├── patient/page.tsx   Thin shell around IntakeForm.
-        └── staff/page.tsx     Thin shell around StaffBoard.
+        └── staff/
+            ├── page.tsx       Thin shell around StaffBoard.
+            ├── login/         Sign in.
+            ├── register/      Create an account.
+            └── reset/         Forgot password.
 ```
 
 ### Why it is split this way
@@ -349,8 +361,8 @@ one plural rule, `fill()` is four lines and `plural()` is two.
 **`IntakeForm`** — owns the form. Builds the Zod schema per language (memoised on the
 dictionary, because every message the patient reads has to be in theirs), holds the
 session id and the submitted receipt, and renders the three sections from the manifest.
-On submit it publishes presence directly rather than waiting on the debounce, because
-the component that owns the debounce unmounts on the very next render.
+On submit it broadcasts directly rather than waiting on the debounce, because the
+component that owns the debounce unmounts on the very next render.
 
 **`LiveMirror`** — the only component subscribed to every field. Keeping the
 `useWatch` here means a keystroke re-renders thirty lines instead of the whole form
@@ -383,6 +395,54 @@ makes the highlight expire.
 **`StatusBadge`** — the five states as a lookup table of styles, with labels and
 threshold tooltips coming from the dictionary and the thresholds interpolated from the
 constants so the copy cannot drift. Adding a state is a table row.
+
+### Staff sign in, registration and reset
+
+**`AuthShell`** — the frame all three screens share: form left, artwork right with
+three cards over it. A server component, so the only JavaScript on these routes is the
+form. The reference design put customer testimonials in those cards; they are gone,
+because inventing three people and three quotes for a clinic's login screen is
+fabricated praise presented as real. The cards state what the desk view does instead.
+
+The artwork column is `sticky` at viewport height rather than stretched to the form.
+Left to fill the column it reached 840px on sign-in and 1205px on registration, which
+turns a 2.4:1 banner into a narrow vertical slice — most of the picture cropped away,
+and a *different* crop on each screen. Pinning it keeps one composition at one height,
+and `object-right` picks the half the artwork lives in, the same call the landing page
+makes.
+
+**`AuthField`** — label, input, error, and a password reveal on password fields. The
+same class string as `Field.tsx` rather than a second look for a second flow: a patient
+and a receptionist are typing into the same product. The reveal is a real `<button>`
+whose accessible name changes with the state, so a screen reader announces which way it
+will go.
+
+**`SampleFill`** — a tick box that fills the form in, with the sample credentials
+printed under it. The point of these screens is the screens; a reviewer should be one
+tick and one click from the desk view, and should never have to guess a password.
+Unticking clears the fields, which is what makes it a checkbox rather than a button —
+the state is visible and reversible.
+
+**`LoginForm` / `RegisterForm` / `ResetForm`** — Zod schemas built per locale, the same
+factory pattern as the intake form, so a language switch re-renders the errors in the
+new language. Registration is gated on an invite code — a desk view is not something
+you let anybody self-serve, and the code is the smallest honest stand-in for the
+approval step a real deployment needs. A rejected sign in is announced with
+`role="alert"`; the reset confirmation is worded "if an account uses this address"
+rather than "we sent it", because the latter tells anyone who asks which of your staff
+addresses are real.
+
+**`StaffIdentity`** — reads the session with `useSyncExternalStore`, whose server
+snapshot is "nobody", so the first client paint agrees with the HTML and hydration has
+nothing to disagree about. The snapshot is cached against the raw stored string, since
+returning a freshly parsed object each call would re-render forever.
+
+What is real here: the validation, the session lifetime, the sign out, and the
+"keep me signed in" box, which moves the session from `sessionStorage` to
+`localStorage` (a front desk is a shared machine, so the default is that closing the
+browser signs you out). What is not real: the credential check, which compares against
+one sample account, and the reset email, which is never sent. Both are stated on the
+page, not in the small print.
 
 ### Shared
 
@@ -424,8 +484,9 @@ socket has to be someone else's. Of the managed options:
   code at all, and it is a real WebSocket (`wss://…/realtime/v1/websocket`), so it
   satisfies the brief even read strictly.
 
-Within Supabase there was a second choice, **Broadcast vs Presence**, and Presence
-wins because it already solves three problems Broadcast would leave for us:
+Within Supabase there was a second choice, **Broadcast vs Presence**. Presence was
+picked first, on paper, because it appeared to solve three problems Broadcast leaves
+to you:
 
 | Requirement | Broadcast | Presence |
 | --- | --- | --- |
@@ -433,8 +494,49 @@ wins because it already solves three problems Broadcast would leave for us:
 | Patient closes the tab | hand-write a heartbeat and a timeout | free, the entry disappears |
 | Where the current state lives | a reducer over a message stream | the payload *is* the state |
 
-Presence is a shared key-value map that syncs to every subscriber and cleans up on
-disconnect. That is the requirement, almost word for word.
+**That reasoning was wrong, and testing on the deployed app is what caught it.** The
+form kept losing its connection partway through filling, and the board would drop back
+to its empty state — right when a patient was nearly done. Talking to Supabase directly
+in the Phoenix protocol produced the reason in plain text:
+
+```
+{"message":"Client presence rate limit exceeded","status":"error"}
+→ phx_close
+```
+
+Despite the name it is a **quota, not a rate**. Four probes at different intervals all
+died on the sixth `track()`:
+
+| interval between updates | died after | elapsed |
+| --- | --- | --- |
+| 500 ms | 6 updates | 3.4 s |
+| 1 s | 6 updates | 6.2 s |
+| 3 s | 6 updates | 18.5 s |
+| 6 s | 6 updates | 36.7 s |
+
+No refill at any interval, so **no amount of debouncing survives it** — a longer delay
+only moves the death later. A patient got about six edits before the channel shut for
+good. Two things then made it unrecoverable: the WebSocket stays *open* when only the
+channel closes, so `supabase-js` never reconnected and every later call came back
+`unmatched topic`; and the subscribe callback mapped `CLOSED` onto the "connecting"
+state, so the patient was shown a reconnect that was not happening.
+
+So the two jobs were split by what each primitive is actually good at:
+
+| | carries | why |
+| --- | --- | --- |
+| **Broadcast** | every form edit | the normal messaging primitive. Measured at 4 msg/s for 34 s: 136 sent, 136 delivered, no error. |
+| **Presence** | one `track({ sessionId })` per join | kept *only* because it is the one thing that reports a patient **leaving**. Identity, nothing else. |
+
+The snapshot problem in the table above then really did come back, exactly as predicted:
+broadcasts are not retained, so staff opening the board mid-form has missed everything.
+It costs about twenty lines — staff broadcasts a `sync` request on subscribe and every
+patient answers with its current form. That is the price of a transport that does not
+die on the sixth keystroke, and it is worth paying.
+
+`mergePresence` kept its signature through all of this. It still takes
+`Record<string, PatientPresence[]>`, fed now from the broadcast map instead of
+`presenceState()`, so the reducer and its tests never changed.
 
 ### The flow
 
@@ -452,14 +554,17 @@ useWatch (RHF)  ── all 13 values
 250 ms trailing debounce            ~4 msg/s, cap is 10
    │
    ▼
-channel.track({ sessionId, data,
-                submitted, filled,
-                total, startedAt })
+channel.send({ type: 'broadcast',
+               event: 'form',
+               payload: { sessionId, data,
+                 submitted, filled,
+                 total, startedAt } })
    │
-   └──────────▶ Supabase Realtime ──────────▶ presence 'sync'
-                'agnos-intake-v1'                     │
+   └──────────▶ Supabase Realtime ──────────▶ broadcast 'form'
+                'agnos-intake-v1'            (presence 'sync' = who left)
+                                                      │
                                                       ▼
-                                             mergePresence(seen, state, now)
+                                             mergePresence(seen, live, now)
                                                       │
                                         ┌─────────────┴──────────────┐
                                         │ diff vs previous → changed │
@@ -549,9 +654,11 @@ characters and capped before it becomes a channel name. It is then remembered fo
 tab, which means in-app navigation keeps it and no component needs `useSearchParams` —
 a hook that cannot be prerendered, and which broke the build when it was tried.
 
-**Staff never publishes.** It subscribes without calling `track()`, so it observes
-presence without appearing in it. No role flag, no filtering. Any entry without a
-`sessionId` is ignored regardless, so a stray subscriber cannot corrupt the board.
+**Staff never appears on the board.** It subscribes without calling `track()`, so it
+watches presence without joining it — no role flag, no filtering. The one thing it does
+send is a single `sync` request on subscribe, asking whoever is mid-form to resend.
+Any payload without a `sessionId` is ignored regardless, so a stray subscriber cannot
+corrupt the board.
 
 ### Testing the part that cannot be clicked
 

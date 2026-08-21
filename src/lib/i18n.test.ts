@@ -70,6 +70,9 @@ test('every placeholder a template uses is one a caller fills', () => {
   const KNOWN = new Set([
     'total', 'optional', 'filled', 'count', 'name', 'label', 'max', 'min',
     'idle', 'inactive', 'status', 'n', 'example', 'local', 'value',
+    // Staff auth: the invite code on the register hint, and the address the
+    // reset confirmation reads back.
+    'code', 'email',
   ])
   for (const dict of [en, th]) {
     for (const path of paths(dict)) {

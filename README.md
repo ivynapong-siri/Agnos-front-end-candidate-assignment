@@ -100,6 +100,28 @@ design reasoning.
 
 ## What is in here beyond the brief
 
+**Staff sign in, registration and password reset**
+
+- Three screens at `/th/staff/login`, `/staff/register` and `/staff/reset`, in both
+  languages, sharing one two-column shell with the folder artwork.
+- **A tick box that fills the form in for you**, and the sample credentials printed
+  under it. The point of these screens is the screens; a reviewer should be one tick
+  and one click from the desk view and should never have to guess a password.
+  Unticking clears the fields again, which is why it is a checkbox and not a button.
+- Validation is real and shares the intake form's approach: Zod schemas built per
+  locale, so switching language re-renders the errors in the new one. Registration is
+  gated on an invite code, mismatched passwords are reported on the field you can fix,
+  and a rejected sign in is announced with `role="alert"`.
+- "Keep me signed in" moves the session from `sessionStorage` to `localStorage`, so the
+  box does something. A front desk is a shared machine, so not ticking it means closing
+  the browser signs you out.
+- The reset confirmation says "if an account uses this address" rather than "we sent
+  it" — the latter tells anyone who asks which of your staff addresses are real.
+- No "Continue with Google" button and no testimonials. There is no OAuth configured,
+  so that button could only lie; and inventing three customers and three quotes for a
+  clinic's login screen would be fabricated praise. The cards over the artwork say what
+  the desk view actually does instead.
+
 **Thai and English, throughout**
 
 - The language is part of the URL — `/th/patient`, `/en/staff` — so the server renders
@@ -232,11 +254,17 @@ These are deliberate, and each has an obvious upgrade path.
   a database; keeping records across reloads means adding an encrypted store with
   row-level security and a retention policy — and changing the privacy promise the
   form currently makes.
-- **`/staff` is not authenticated.** Anyone with the URL sees the board. Out of scope
-  for the assignment; in production this needs SSO in front of it.
-- **The whole form travels in every presence payload** (~500 bytes for these fields).
-  If the form grew to hundreds of fields, switch to Broadcast for field-level patches
-  and keep Presence for the snapshot. Marked in the source.
+- **The staff sign-in cannot really authenticate anybody.** The three screens are real
+  — real validation, a real session, a real sign out — but there is no backend in this
+  brief, so the credential check compares against one sample account and the reset
+  email is never sent. Every one of those screens says so on the page rather than in
+  the small print. `/staff` therefore still shows the board to anyone with the URL: the
+  board is the thing being assessed, and putting a lock on it that cannot actually
+  hold would trade the deliverable for a gesture. In production this is SSO plus a
+  server-side session, and the screens are already shaped for it.
+- **The whole form travels in every broadcast** (~500 bytes for these fields). Fine at
+  this size; a form of hundreds of fields would want field-level patches instead of a
+  full snapshot per keystroke.
 - **Two languages, hand-maintained.** No translation-management tooling; the parity
   test is what keeps them honest.
 

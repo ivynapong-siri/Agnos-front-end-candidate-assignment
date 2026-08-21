@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { ArtWaiting } from './ArtWaiting'
 import { LiveIndicator, SetupNotice } from './LiveIndicator'
+import { StaffIdentity } from './StaffIdentity'
 import { GlassButton } from './GlassButton'
 import { SessionCard } from './SessionCard'
 import { STATUS_ORDER, STATUS_STYLE, statusTitle } from './StatusBadge'
@@ -67,6 +68,7 @@ export function StaffBoard({ dict, locale }: { dict: Dictionary; locale: Locale 
                 : plural({ one: dict.staff.count_one, other: dict.staff.count_other }, identified.length)}
             </p>
           </div>
+          <StaffIdentity dict={dict} locale={locale} />
           <LiveIndicator connection={connection} dict={dict} />
           <GlassButton
             tone="secondary"
