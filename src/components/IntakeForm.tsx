@@ -321,13 +321,8 @@ export function IntakeForm({ dict, locale }: { dict: Dictionary; locale: Locale 
         {FIELDS_BY_SECTION.map((section, index) => (
           <section
             key={section.id}
-            id={`section-${section.id}`}
-            // Read by SectionMedia, which watches these to decide which picture
-            // to show. A data attribute rather than a callback prop: the media
-            // panel is a sibling in the page, not a child of the form.
-            data-intake-section={section.id}
             aria-labelledby={`${section.id}-heading`}
-            className="mb-6 scroll-mt-28 rounded-3xl border border-brand-wash bg-white p-5 shadow-card sm:p-7"
+            className="mb-6 rounded-3xl border border-brand-wash bg-white p-5 shadow-card sm:p-7"
           >
             <div className="mb-6 flex gap-4">
               <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-brand-wash">
