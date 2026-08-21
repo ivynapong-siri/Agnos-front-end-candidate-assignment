@@ -240,18 +240,29 @@ export function Listbox({
         )}
 
         {/*
-          min-h-0 flex-1, not max-h-full. The panel is a column flex box whose
-          height is auto — only its top is positioned — and a percentage height
-          measured against a parent that has not settled resolves to zero in
-          WebKit while Chrome reads it as none. On a phone the list collapsed to
-          its own padding: a sliver under the field with the options inside it,
-          clipped away. This is the portable form — the child gives up its
-          content-based floor and takes what the panel's max-height allows.
+          min-h-0 and nothing else. Two wrong answers came before it, and both
+          are easy to reach for:
+
+          max-h-full is a percentage, and the panel it measures against is a
+          column flex box with an auto height — only its top is positioned. A
+          percentage against a parent that has not settled resolves to zero in
+          WebKit while Chrome reads it as none, so on a phone the list collapsed
+          to the panel's own padding.
+
+          flex-1 is flex: 1 1 0%, which gives the list a base size of zero. The
+          panel's auto height is worked out from its children's base sizes, so
+          the panel then had nothing to be tall from either.
+
+          What is left is the default flex: 0 1 auto — base size is the content,
+          so the panel is as tall as the options up to its max-height — plus
+          min-height: 0, which is the part flex does not give you: without it a
+          flex item refuses to shrink below its content and the overflow never
+          scrolls.
         */}
         <ul
           role="listbox"
           aria-labelledby={id}
-          className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain p-1.5"
+          className="min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain p-1.5"
         >
           {everOpened &&
             filtered.map((option, index) => {
