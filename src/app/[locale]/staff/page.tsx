@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { RequireStaff } from '@/components/RequireStaff'
 import { StaffBoard } from '@/components/StaffBoard'
 import { DEFAULT_LOCALE, getDictionary, isLocale } from '@/i18n'
 
@@ -15,10 +16,13 @@ export async function generateMetadata({
 export default async function StaffPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale: raw } = await params
   const locale = isLocale(raw) ? raw : DEFAULT_LOCALE
+  const dict = getDictionary(locale)
 
   return (
     <main className="mx-auto w-full max-w-4xl px-4 pb-20 pt-6 sm:px-6 sm:pt-10">
-      <StaffBoard dict={getDictionary(locale)} locale={locale} />
+      <RequireStaff locale={locale} dict={dict}>
+        <StaffBoard dict={dict} locale={locale} />
+      </RequireStaff>
     </main>
   )
 }

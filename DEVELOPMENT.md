@@ -437,8 +437,20 @@ snapshot is "nobody", so the first client paint agrees with the HTML and hydrati
 nothing to disagree about. The snapshot is cached against the raw stored string, since
 returning a freshly parsed object each call would re-render forever.
 
-What is real here: the validation, the session lifetime, the sign out, and the
-"keep me signed in" box, which moves the session from `sessionStorage` to
+**`RequireStaff`** — wraps the board and sends anyone without a session to the sign-in
+page. It reads the same snapshot in three states, and the third one is the point:
+`undefined` means "storage not read yet", which is what the prerendered HTML carries.
+Folded into "signed out", every signed-in visitor would watch a sign-in wall flash
+before the board arrived, and every crawler would be redirected. Unknown renders
+nothing; only a definite `null` redirects.
+
+That gate enforces the flow rather than securing anything — the page is static and the
+data arrives over a public channel, so someone determined can still read it. Real
+enforcement means the board's rows coming from a server that checked a session first,
+which is the backend this brief does not have.
+
+What is real here: the validation, the session lifetime, the sign out, the redirect,
+and the "keep me signed in" box, which moves the session from `sessionStorage` to
 `localStorage` (a front desk is a shared machine, so the default is that closing the
 browser signs you out). What is not real: the credential check, which compares against
 one sample account, and the reset email, which is never sent. Both are stated on the

@@ -24,7 +24,7 @@ export const MAX_FIELD = 120
  * should never have to guess a password to see the page behind it.
  */
 export const SAMPLE_STAFF = {
-  name: 'ณิชา พงษ์สวัสดิ์',
+  name: 'Napong Sirivat',
   email: 'napong.sirivat@gmail.com',
   password: 'agnos-demo-2026',
   invite: 'AGNOS-DESK',
@@ -115,9 +115,16 @@ export function staffSnapshot(): StaffAccount | null {
   return cached
 }
 
-/** Server render has no storage, so nobody is signed in yet. */
-export function staffServerSnapshot(): StaffAccount | null {
-  return null
+/**
+ * `undefined` rather than `null`, and the difference carries weight: null is
+ * "signed out", undefined is "not known yet". A gate that cannot tell them apart
+ * either redirects everybody on the first paint or shows the board to nobody.
+ *
+ * React calls this during hydration, so the first client render matches the
+ * prerendered HTML and only then re-reads storage.
+ */
+export function staffServerSnapshot(): StaffAccount | null | undefined {
+  return undefined
 }
 
 export function subscribeStaffSession(onChange: () => void): () => void {

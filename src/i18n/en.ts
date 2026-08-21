@@ -352,6 +352,8 @@ const en = {
       signOut: 'Sign out',
       guest: 'Not signed in',
       signIn: 'Sign in',
+      gateTitle: 'Sign in required',
+      gateBody: 'The front desk shows patient information, so it opens only for staff who have signed in.',
     },
   },
 }

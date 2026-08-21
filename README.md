@@ -255,13 +255,15 @@ These are deliberate, and each has an obvious upgrade path.
   row-level security and a retention policy — and changing the privacy promise the
   form currently makes.
 - **The staff sign-in cannot really authenticate anybody.** The three screens are real
-  — real validation, a real session, a real sign out — but there is no backend in this
-  brief, so the credential check compares against one sample account and the reset
-  email is never sent. Every one of those screens says so on the page rather than in
-  the small print. `/staff` therefore still shows the board to anyone with the URL: the
-  board is the thing being assessed, and putting a lock on it that cannot actually
-  hold would trade the deliverable for a gesture. In production this is SSO plus a
-  server-side session, and the screens are already shaped for it.
+  — real validation, a real session, a real sign out — and `/staff` does redirect to
+  the sign-in page without one. But there is no backend in this brief, so the
+  credential check compares against one sample account and the reset email is never
+  sent. The gate enforces the flow; it is not a security boundary, because the page is
+  static and the data arrives over a public channel, so anyone determined can still
+  read it. Real enforcement means the board's data coming from a server that checked a
+  session first. Every screen says as much on the page rather than in the small print,
+  and the sample credentials are printed under the tick box so a reviewer is never
+  locked out.
 - **The whole form travels in every broadcast** (~500 bytes for these fields). Fine at
   this size; a form of hundreds of fields would want field-level patches instead of a
   full snapshot per keystroke.

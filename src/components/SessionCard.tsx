@@ -75,9 +75,18 @@ export function SessionCard({
         </div>
       </div>
 
-      {/* Native <details>: staff can collapse a card on a phone without a line
-          of state management, and it is open by default so the live values show. */}
-      <details open className="group border-t border-brand-wash">
+      {/*
+        Native <details>, closed by default. Thirteen rows per card is fine for
+        three patients and unreadable for a hundred — a busy morning turns the
+        board into a page nobody can scan. Collapsed, every card is a fixed
+        four lines: who, how far, what state, how long ago. That is what triage
+        needs; the detail is one click away when a particular patient matters.
+
+        The trade is that the change-flash only plays while a card is open. The
+        header still moves — progress, status and "last change" all update — so
+        activity is never invisible, only quieter.
+      */}
+      <details className="group border-t border-brand-wash">
         <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-2.5 text-xs font-semibold text-muted sm:px-5">
           {dict.staff.details}
           <svg
