@@ -239,7 +239,20 @@ export function Listbox({
           </div>
         )}
 
-        <ul role="listbox" aria-labelledby={id} className="max-h-full overflow-y-auto overflow-x-hidden overscroll-contain p-1.5">
+        {/*
+          min-h-0 flex-1, not max-h-full. The panel is a column flex box whose
+          height is auto — only its top is positioned — and a percentage height
+          measured against a parent that has not settled resolves to zero in
+          WebKit while Chrome reads it as none. On a phone the list collapsed to
+          its own padding: a sliver under the field with the options inside it,
+          clipped away. This is the portable form — the child gives up its
+          content-based floor and takes what the panel's max-height allows.
+        */}
+        <ul
+          role="listbox"
+          aria-labelledby={id}
+          className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain p-1.5"
+        >
           {everOpened &&
             filtered.map((option, index) => {
             const isSelected = option.value === value

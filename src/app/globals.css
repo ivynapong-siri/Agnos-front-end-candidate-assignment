@@ -353,7 +353,10 @@
   display: flex;
   width: var(--lb-w, 16rem);
   max-width: calc(100vw - 1rem);
-  /* Keep in step with PANEL_MAX_HEIGHT in lib/anchor.ts. */
+  /* Keep in step with PANEL_MAX_HEIGHT in lib/anchor.ts. The plain value comes
+     first on purpose: an engine without dvh throws the min() away as invalid,
+     and would otherwise be left with no cap at all. */
+  max-height: 18rem;
   max-height: min(18rem, 60dvh);
   flex-direction: column;
   overflow: hidden;
