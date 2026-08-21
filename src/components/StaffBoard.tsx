@@ -146,7 +146,10 @@ export function StaffBoard({ dict, locale }: { dict: Dictionary; locale: Locale 
           </GlassButton>
         </div>
       ) : (
-        <div className="grid">
+        // data-clarity-mask: this list is every patient's name, phone number and
+        // address as plain page text, which a session replay would otherwise
+        // record verbatim.
+        <div className="grid" data-clarity-mask="true">
           {/* No gap on the container: the spacing lives inside each collapsing
               wrapper, so a departing card takes its own gap with it instead of
               leaving a hole behind while it animates. */}

@@ -20,6 +20,9 @@ import '../globals.css'
 // One typeface for both scripts. Anuphan is drawn as a Thai/Latin pair, so the
 // two share metrics instead of being two fonts of different apparent size
 // stacked on each other.
+/** Analytics only runs where it is configured, which is production. */
+const CLARITY_ID = process.env.NEXT_PUBLIC_CLARITY_ID
+
 const anuphan = Anuphan({
   subsets: ['latin', 'thai'],
   variable: '--font-anuphan',
@@ -77,6 +80,31 @@ export default async function LocaleLayout({
           removes the mismatched text entirely.
         */}
         <Script id="agnos-theme" src="/theme.js" strategy="beforeInteractive" />
+
+        {/*
+          Microsoft Clarity. Behind an environment variable rather than pasted
+          in, so it does not run in development — nobody wants a session replay
+          of their own dev server — and so the analytics id is not a fact about
+          the source.
+
+          afterInteractive, not beforeInteractive: analytics has no business
+          delaying the form's first paint.
+
+          Clarity records session replays. Everything that shows a patient's
+          answers back — the form, the receipt, the front desk — carries
+          data-clarity-mask, so what reaches Microsoft is the shape of the page
+          and where people struggled, never what anyone typed. See the note in
+          the README.
+        */}
+        {CLARITY_ID && (
+          <Script
+            id="ms-clarity"
+            strategy="afterInteractive"
+            dangerouslySetInnerHTML={{
+              __html: `(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window,document,"clarity","script","${CLARITY_ID}");`,
+            }}
+          />
+        )}
 
         {/* Soft brand wash behind everything. Blurred CSS circles rather than
             SVG blobs: same look, nothing to maintain. */}

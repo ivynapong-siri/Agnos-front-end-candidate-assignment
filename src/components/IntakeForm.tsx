@@ -196,7 +196,10 @@ function ThankYou({
   const answered = FIELDS.filter((field) => values[field.name].trim() !== '')
 
   return (
-    <div className="animate-rise rounded-3xl border border-brand-wash bg-white p-6 text-center shadow-card sm:p-10">
+    <div
+      data-clarity-mask="true"
+      className="animate-rise rounded-3xl border border-brand-wash bg-white p-6 text-center shadow-card sm:p-10"
+    >
       <ArtDone className="mx-auto h-28 w-28" />
       <h1 className="mt-4 text-2xl font-bold text-navy-900 sm:text-3xl">
         {fill(dict.receipt.thanks, { name: values.firstName })}
@@ -306,7 +309,7 @@ export function IntakeForm({ dict, locale }: { dict: Dictionary; locale: Locale 
 
       {!realtimeConfigured && <SetupNotice dict={dict} locale={locale} />}
 
-      <form onSubmit={onSubmit} noValidate>
+      <form onSubmit={onSubmit} noValidate data-clarity-mask="true">
         {/* Sticky so the patient can always see how much is left, per IxDF's
             progress-indicator guidance, without a multi-step wizard. */}
         {/*
