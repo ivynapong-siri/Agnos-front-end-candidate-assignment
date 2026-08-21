@@ -2,6 +2,7 @@
 
 import { useSyncExternalStore } from 'react'
 import { GlassButton } from './GlassButton'
+import { Magnetic } from './Magnetic'
 import type { Dictionary } from '@/i18n'
 
 /**
@@ -56,6 +57,7 @@ export function ThemeToggle({ dict }: { dict: Dictionary }) {
   }
 
   return (
+    <Magnetic className="inline-flex shrink-0">
     <GlassButton
       tone={high ? 'primary' : 'ghost'}
       size="sm"
@@ -72,5 +74,6 @@ export function ThemeToggle({ dict }: { dict: Dictionary }) {
       <span className="hidden sm:inline">{dict.theme.label}</span>
       <span className="sr-only sm:hidden">{dict.theme.label}</span>
     </GlassButton>
+    </Magnetic>
   )
 }

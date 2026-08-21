@@ -8,6 +8,7 @@ import { CENTRE, ORBIT, orbitFrames, radiusAt, restingPosition } from './orbit'
 import { COUNTRIES, composePhone, flagFor, parsePhone } from './phone'
 import { FIELDS, displayValue } from './fields'
 import { pickActiveSection } from './scrollspy'
+import { CATCH_PADDING, MAX_PULL, magneticPull } from './magnetic'
 
 /**
  * The custom date and phone controls replaced native ones, which means their
@@ -321,4 +322,54 @@ test('the picture follows the section the reader is actually looking at', () => 
     pickActiveSection(ORDER, at({ somethingElse: 1, contact: 0.4 }), 'personal'),
     'contact',
   )
+})
+
+
+/* ------------------------------------------------------------------ *
+ * Magnetic buttons
+ *
+ * The spring that carries the button needs a browser running frames. Where it
+ * is being carried to does not.
+ * ------------------------------------------------------------------ */
+
+test('a button leans towards the pointer, and only when the pointer is near', () => {
+  // A 144x48 button, the size of the floating one, at a round position.
+  const box = { left: 100, top: 100, right: 244, bottom: 148 }
+  const centreX = 172
+  const centreY = 124
+
+  // Dead centre: nothing to lean towards.
+  assert.deepEqual(magneticPull(centreX, centreY, box), { x: 0, y: 0 })
+
+  // Towards the pointer, not away from it.
+  const right = magneticPull(centreX + 40, centreY, box)
+  assert.ok(right.x > 0, `expected a rightward lean, got ${right.x}`)
+  const left = magneticPull(centreX - 40, centreY, box)
+  assert.ok(left.x < 0, `expected a leftward lean, got ${left.x}`)
+  const down = magneticPull(centreX, centreY + 20, box)
+  assert.ok(down.y > 0, `expected a downward lean, got ${down.y}`)
+
+  // Symmetric, so the button does not favour one side.
+  assert.equal(right.x, -left.x)
+
+  // Never further than the cap, however far into the catch area the pointer is.
+  for (const dx of [-CATCH_PADDING, -40, 0, 40, CATCH_PADDING]) {
+    for (const dy of [-CATCH_PADDING, 0, CATCH_PADDING]) {
+      const pull = magneticPull(box.left + dx, box.bottom + dy, box)
+      assert.ok(Math.abs(pull.x) <= MAX_PULL, `x ran to ${pull.x}`)
+      assert.ok(Math.abs(pull.y) <= MAX_PULL, `y ran to ${pull.y}`)
+    }
+  }
+
+  // Outside the padded box it lets go completely, rather than easing off.
+  assert.deepEqual(magneticPull(box.right + CATCH_PADDING + 1, centreY, box), { x: 0, y: 0 })
+  assert.deepEqual(magneticPull(centreX, box.top - CATCH_PADDING - 1, box), { x: 0, y: 0 })
+
+  // Caught before the pointer arrives: still outside the button, already pulling.
+  const early = magneticPull(box.right + CATCH_PADDING - 1, centreY, box)
+  assert.ok(early.x > 0, 'the pull should start before the pointer reaches the button')
+
+  // Hidden at this breakpoint: a zero-sized box would otherwise send the button
+  // reaching for the top-left of the viewport.
+  assert.deepEqual(magneticPull(500, 500, { left: 0, top: 0, right: 0, bottom: 0 }), { x: 0, y: 0 })
 })

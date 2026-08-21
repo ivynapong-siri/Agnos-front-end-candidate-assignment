@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { ArtDone, SectionIcon } from './Art'
 import { Field } from './Field'
 import { GlassButton } from './GlassButton'
+import { Magnetic } from './Magnetic'
 import { LiveIndicator, SetupNotice } from './LiveIndicator'
 import { fill, plural, type Dictionary, type Locale } from '@/i18n'
 import {
@@ -366,13 +367,15 @@ export function IntakeForm({ dict, locale }: { dict: Dictionary; locale: Locale 
             <span>{dict.form.privacy}</span>
           </p>
 
-          <GlassButton
-            type="submit"
-            disabled={methods.formState.isSubmitting}
-            className="w-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand sm:w-auto"
-          >
-            {dict.form.submit}
-          </GlassButton>
+          <Magnetic className="inline-flex w-full sm:w-auto">
+            <GlassButton
+              type="submit"
+              disabled={methods.formState.isSubmitting}
+              className="w-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+            >
+              {dict.form.submit}
+            </GlassButton>
+          </Magnetic>
         </div>
       </form>
     </FormProvider>

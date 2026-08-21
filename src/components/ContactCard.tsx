@@ -1,4 +1,5 @@
 import { GlassButton } from './GlassButton'
+import { Magnetic } from './Magnetic'
 import type { Dictionary } from '@/i18n'
 
 /**
@@ -132,14 +133,20 @@ export function ContactCard({ dict, channels }: { dict: Dictionary; channels?: C
         about 1000px up. Below that it sits at the end of the page instead,
         where it covers nothing.
       */}
-      <GlassButton
-        type="button"
-        popoverTarget={PANEL_ID}
-        className="contact-trigger enter enter-support z-30 mx-auto mb-10 flex w-fit focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand lg:fixed lg:bottom-6 lg:right-6 lg:mx-0 lg:mb-0"
-      >
-        <QuestionIcon />
-        <span className="text-sm">{dict.contact.open}</span>
-      </GlassButton>
+      {/* The positioning lives on the wrapper, not the button. Magnetic applies
+          a transform, and a transformed ancestor becomes the containing block
+          for any fixed descendant — leaving it on the button would drop the
+          floating trigger out of its corner. */}
+      <Magnetic className="enter enter-support z-30 mx-auto mb-10 flex w-fit lg:fixed lg:bottom-6 lg:right-6 lg:mx-0 lg:mb-0">
+        <GlassButton
+          type="button"
+          popoverTarget={PANEL_ID}
+          className="contact-trigger focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+        >
+          <QuestionIcon />
+          <span className="text-sm">{dict.contact.open}</span>
+        </GlassButton>
+      </Magnetic>
     </>
   )
 }
