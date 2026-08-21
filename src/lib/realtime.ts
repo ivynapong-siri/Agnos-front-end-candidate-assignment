@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { createClient, type RealtimeChannel } from '@supabase/supabase-js'
 import { FIELDS, type FieldName } from './fields'
 import type { PatientForm } from './schema'
@@ -145,124 +145,195 @@ const SYNC_EVENT = 'sync'
 /** How long to wait before rejoining a channel the server closed. */
 const REJOIN_DELAY_MS = 1500
 
+/* ------------------------------------------------------------------ *
+ * The patient's channel
+ *
+ * Module scope, not component state, and that is the whole point of it.
+ *
+ * Switching language is a real navigation — /th/patient to /en/patient — so
+ * React discards the component and builds a new one. Everything the old
+ * instance held in a ref goes with it, including the promise that serialised
+ * channel teardown. The new instance therefore joined immediately while the old
+ * channel was still unsubscribing, the server answered the duplicate topic by
+ * closing it, and the badge sat on "connecting" for good: measured at over
+ * thirty seconds with no recovery, which means the form had quietly stopped
+ * syncing.
+ *
+ * Held here instead, the channel outlives the remount entirely. Switching
+ * language now only re-renders the label — Thai to English, still live, no
+ * round trip at all.
+ * ------------------------------------------------------------------ */
+
+let channel: RealtimeChannel | null = null
+/** Topic and presence key together: either changing means a genuinely new channel. */
+let channelKey = ''
+let connection: Connection = realtimeConfigured ? 'connecting' : 'off'
+let subscribedNow = false
+let latest: PatientPresence | null = null
+/** Removal of the previous channel, awaited before the next one joins. */
+let teardown: Promise<unknown> = Promise.resolve()
+let holders = 0
+let releaseTimer: ReturnType<typeof setTimeout> | undefined
+let rejoinTimer: ReturnType<typeof setTimeout> | undefined
+
+const listeners = new Set<() => void>()
+
+function announce(next: Connection) {
+  if (connection === next) return
+  connection = next
+  listeners.forEach((listener) => listener())
+}
+
+function openChannel(key: string, sessionId: string) {
+  // A newer request superseded this one while the old channel was closing.
+  if (!client || channelKey !== key) return
+
+  const ch = client.channel(key.slice(0, key.lastIndexOf('::')), {
+    config: { presence: { key: sessionId } },
+  })
+  channel = ch
+
+  // Guards the rejoin against itself: removeChannel() fires the subscribe
+  // callback with CLOSED again, which would otherwise schedule a second rejoin
+  // for every one that ran.
+  let closing = false
+  const stale = () => closing || channelKey !== key
+
+  const sendLatest = () => {
+    if (latest) void ch.send({ type: 'broadcast', event: FORM_EVENT, payload: latest })
+  }
+
+  // Staff opening the dashboard mid-form has missed every edit so far.
+  ch.on('broadcast', { event: SYNC_EVENT }, sendLatest)
+
+  ch.subscribe((status) => {
+    if (stale()) return
+    if (status === 'SUBSCRIBED') {
+      subscribedNow = true
+      announce('live')
+      // Exactly one track() per join, carrying identity and nothing else.
+      // Presence is only the roster now: it says who is here and tells staff
+      // the moment they leave. The form itself travels by broadcast.
+      void ch.track({ sessionId })
+      sendLatest()
+      return
+    }
+    subscribedNow = false
+    if (status === 'CLOSED') {
+      // Truthfully connecting: a rejoin is scheduled below.
+      announce('connecting')
+      closing = true
+      void client?.removeChannel(ch)
+      rejoinTimer = setTimeout(() => openChannel(key, sessionId), REJOIN_DELAY_MS)
+      return
+    }
+    announce(status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' ? 'error' : 'connecting')
+  })
+}
+
+function ensureChannel(sessionId: string) {
+  if (!client) return
+  const key = `${currentChannel()}::${sessionId}`
+  // The locale-switch path: same room, same session, so there is nothing to do
+  // and the live connection is left completely alone.
+  if (key === channelKey && channel) return
+
+  const previous = channel
+  channel = null
+  channelKey = key
+  clearTimeout(rejoinTimer)
+
+  if (previous) {
+    subscribedNow = false
+    announce('connecting')
+    teardown = previous
+      .untrack()
+      .then(() => client?.removeChannel(previous))
+      .catch(() => undefined)
+  }
+  // Never rejects, or one failed teardown would strand every later join.
+  teardown = teardown.then(
+    () => openChannel(key, sessionId),
+    () => openChannel(key, sessionId),
+  )
+}
+
+function closeChannel() {
+  clearTimeout(rejoinTimer)
+  const previous = channel
+  channel = null
+  channelKey = ''
+  subscribedNow = false
+  latest = null
+  announce(realtimeConfigured ? 'connecting' : 'off')
+  if (!previous || !client) return
+  // untrack() before unsubscribing: it pushes a presence diff immediately, so
+  // staff sees the patient leave within a beat. removeChannel alone only
+  // unsubscribes this client and leaves the server to work it out.
+  teardown = previous
+    .untrack()
+    .then(() => client?.removeChannel(previous))
+    .catch(() => undefined)
+}
+
+/**
+ * A remount unmounts before it mounts, so the holder count dips to zero for a
+ * frame on every language switch. Closing on that dip is what this whole module
+ * exists to avoid, so departure waits long enough to tell the two apart.
+ */
+const RELEASE_GRACE_MS = 400
+
+function retain(sessionId: string): () => void {
+  clearTimeout(releaseTimer)
+  holders += 1
+  ensureChannel(sessionId)
+
+  return () => {
+    holders -= 1
+    if (holders > 0) return
+    releaseTimer = setTimeout(() => {
+      if (holders === 0) closeChannel()
+    }, RELEASE_GRACE_MS)
+  }
+}
+
+// A tab closed outright runs no cleanup at all, so the server has to notice the
+// socket died — which is slow. pagehide fires early enough to get an untrack out.
+if (typeof window !== 'undefined' && client) {
+  window.addEventListener('pagehide', () => {
+    void channel?.untrack()
+  })
+}
+
+const subscribeConnection = (onChange: () => void) => {
+  listeners.add(onChange)
+  return () => {
+    listeners.delete(onChange)
+  }
+}
+const readConnection = () => connection
+const readServerConnection = (): Connection => (realtimeConfigured ? 'connecting' : 'off')
+
 export function usePatientPresence(sessionId: string) {
-  const [connection, setConnection] = useState<Connection>(realtimeConfigured ? 'connecting' : 'off')
-  const channel = useRef<RealtimeChannel | null>(null)
-  const subscribed = useRef(false)
-  /** Removal of the previous channel, awaited before the next one joins. */
-  const teardown = useRef<Promise<unknown>>(Promise.resolve())
-  // Whatever we last tried to send. Resent on (re)subscribe, and whenever staff
-  // asks, so neither a reconnect nor a late-opening dashboard leaves the front
-  // desk looking at a stale form.
-  const latest = useRef<PatientPresence | null>(null)
+  const connectionState = useSyncExternalStore(
+    subscribeConnection,
+    readConnection,
+    readServerConnection,
+  )
 
   useEffect(() => {
-    if (!client || !sessionId) return
-    const active = client
-    let disposed = false
-    let retry: ReturnType<typeof setTimeout> | undefined
-
-    const join = () => {
-      if (disposed) return
-      const ch = active.channel(currentChannel(), { config: { presence: { key: sessionId } } })
-      channel.current = ch
-
-      // Guards the rejoin against itself: removeChannel() fires the subscribe
-      // callback with CLOSED again, which would otherwise schedule a second
-      // rejoin for every one that ran.
-      let closing = false
-      const rejoin = () => {
-        if (disposed || closing) return
-        closing = true
-        subscribed.current = false
-        void active.removeChannel(ch)
-        retry = setTimeout(join, REJOIN_DELAY_MS)
-      }
-
-      const sendLatest = () => {
-        if (latest.current) void ch.send({ type: 'broadcast', event: FORM_EVENT, payload: latest.current })
-      }
-
-      // Staff opening the dashboard mid-form has missed every edit so far.
-      ch.on('broadcast', { event: SYNC_EVENT }, sendLatest)
-
-      ch.subscribe((status) => {
-        if (disposed || closing) return
-        if (status === 'SUBSCRIBED') {
-          subscribed.current = true
-          setConnection('live')
-          // Exactly one track() per join, carrying identity and nothing else.
-          // Presence is only the roster now: it says who is here and tells staff
-          // the moment they leave. The form itself travels by broadcast.
-          void ch.track({ sessionId })
-          sendLatest()
-          return
-        }
-        subscribed.current = false
-        if (status === 'CLOSED') {
-          // Reported as connecting because that is now true — a rejoin is
-          // scheduled. Before this existed the channel simply stayed dead and
-          // the patient was shown "connecting" forever.
-          setConnection('connecting')
-          rejoin()
-          return
-        }
-        setConnection(status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' ? 'error' : 'connecting')
-      })
-
-      return ch
-    }
-
-    // Wait for the previous channel to be gone before joining the same topic.
-    //
-    // This effect re-runs whenever the session id changes, which is what
-    // "start another form" does. Joining immediately meant two channels on one
-    // topic over one socket while the first was still unsubscribing, and the
-    // server answers a duplicate join by tearing the topic down. The tab then
-    // held a channel that reported SUBSCRIBED and delivered nothing: the
-    // patient saw "connected", and the front desk never saw them at all.
-    //
-    // Caught by listening to the room directly — after "start another", three
-    // keystrokes produced no broadcast and no presence entry.
-    void teardown.current.then(join, join)
-
-    // A tab that is closed outright runs no cleanup at all, so the server has
-    // to notice the socket died — which is slow. pagehide fires early enough to
-    // get an untrack out first.
-    const leave = () => {
-      void channel.current?.untrack()
-    }
-    window.addEventListener('pagehide', leave)
-
-    return () => {
-      disposed = true
-      subscribed.current = false
-      clearTimeout(retry)
-      window.removeEventListener('pagehide', leave)
-      const ch = channel.current
-      channel.current = null
-      if (!ch) return
-      // untrack() before unsubscribing: it pushes a presence diff immediately,
-      // so staff sees the patient leave within a beat. removeChannel alone only
-      // unsubscribes this client and leaves the server to work it out.
-      //
-      // Held on a ref so the *next* run of this effect can wait for it. Never
-      // rejects, or a failed teardown would strand every later join.
-      teardown.current = ch
-        .untrack()
-        .then(() => active.removeChannel(ch))
-        .catch(() => undefined)
-    }
+    if (!sessionId) return
+    return retain(sessionId)
   }, [sessionId])
 
   const publish = useCallback((payload: PatientPresence) => {
-    latest.current = payload
-    if (subscribed.current) {
-      void channel.current?.send({ type: 'broadcast', event: FORM_EVENT, payload })
+    latest = payload
+    if (subscribedNow) {
+      void channel?.send({ type: 'broadcast', event: FORM_EVENT, payload })
     }
   }, [])
 
-  return { publish, connection }
+  return { publish, connection: connectionState }
 }
 
 /* ------------------------------------------------------------------ *
