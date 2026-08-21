@@ -367,10 +367,18 @@
     display 0.18s ease-out allow-discrete;
 }
 
+/* Without this the panel opens and stays fully transparent: the popover is in
+   the top layer, the chevron flips, and nothing appears. Deleted once by a
+   careless find-and-replace, which is why it is worth naming here. */
+.listbox-panel:popover-open {
+  opacity: 1;
+  transform: none;
+}
+
 @starting-style {
   .listbox-panel:popover-open {
     opacity: 0;
-    transform: translateY(12px);
+    transform: translateY(8px);
   }
 }
 
