@@ -128,16 +128,20 @@ export function ContactCard({ dict, channels }: { dict: Dictionary; channels?: C
         those are the ones you are scrolled to for most of the form, and their
         controls are dropdowns where a swallowed tap simply does nothing.
 
-        lg is where it stops touching anything: the form is 768px wide and the
-        button starts 168px from the right edge, so they clear each other from
-        about 1000px up. Below that it sits at the end of the page instead,
-        where it covers nothing.
+        Where it stops touching anything moved when the patient form went full
+        width. The shell caps at 1280 with 24px of padding and the button starts
+        168px from the right edge, so the two only clear each other once the
+        viewport passes about 1568 — 1280 and 1440 laptops both still collided.
+        Hit-testing at 1280 handed the button back instead of the field for
+        email, nationality, religion and the emergency relationship. It floats
+        from 1600 now, with 36px to spare, and sits at the end of the page below
+        that, covering nothing.
       */}
       {/* The positioning lives on the wrapper, not the button. Magnetic applies
           a transform, and a transformed ancestor becomes the containing block
           for any fixed descendant — leaving it on the button would drop the
           floating trigger out of its corner. */}
-      <Magnetic className="enter enter-support z-30 mx-auto mb-10 flex w-fit lg:fixed lg:bottom-6 lg:right-6 lg:mx-0 lg:mb-0">
+      <Magnetic className="enter enter-support z-30 mx-auto mb-10 flex w-fit min-[1600px]:fixed min-[1600px]:bottom-6 min-[1600px]:right-6 min-[1600px]:mx-0 min-[1600px]:mb-0">
         <GlassButton
           type="button"
           popoverTarget={PANEL_ID}
