@@ -29,7 +29,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
       <section className="relative isolate flex min-h-svh flex-col overflow-hidden pt-16 sm:pt-20">
         {/*
           next/image rather than a CSS background: identical result
-          (object-cover / object-right is bg-cover / bg-right) but it serves
+          (object-cover / object-position is bg-cover / bg-position) but it serves
           AVIF and WebP sized to the viewport. The full 3168px source is kept
           for headroom on 2x displays — it is never sent as-is.
 
@@ -43,7 +43,10 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
           priority
           quality={85}
           sizes="(min-width: 1024px) 100vw, 0px"
-          className="hero-art pointer-events-none -z-10 hidden select-none object-cover object-right lg:block"
+          /* 74%, not the right edge. Pinning the edge spends the narrowest part
+              of the crop on the empty margin past the folder; 74% keeps the
+              artwork in frame at 1280, where the box is tightest. */
+          className="hero-art pointer-events-none -z-10 hidden select-none object-cover object-[74%_center] lg:block"
         />
 
         <div className="page-shell grid flex-1 content-center gap-x-10 gap-y-8 py-10 md:grid-cols-2">
