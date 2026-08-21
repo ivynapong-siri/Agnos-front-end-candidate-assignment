@@ -45,7 +45,9 @@ export function StaffIdentity({ dict, locale }: { dict: Dictionary; locale: Loca
       <button
         type="button"
         onClick={clearStaffSession}
-        className="rounded font-semibold text-brand underline underline-offset-4 transition-colors hover:no-underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+        // min-h-11: it is a standalone control, not a link inside a sentence,
+        // so it owes the same 44px the rest of the app keeps to. It measured 26.
+        className="inline-flex min-h-11 items-center rounded px-1 font-semibold text-brand underline underline-offset-4 transition-colors hover:no-underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
       >
         {dict.auth.session.signOut}
       </button>
