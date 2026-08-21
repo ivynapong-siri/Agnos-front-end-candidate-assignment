@@ -149,6 +149,8 @@ export function usePatientPresence(sessionId: string) {
   const [connection, setConnection] = useState<Connection>(realtimeConfigured ? 'connecting' : 'off')
   const channel = useRef<RealtimeChannel | null>(null)
   const subscribed = useRef(false)
+  /** Removal of the previous channel, awaited before the next one joins. */
+  const teardown = useRef<Promise<unknown>>(Promise.resolve())
   // Whatever we last tried to send. Resent on (re)subscribe, and whenever staff
   // asks, so neither a reconnect nor a late-opening dashboard leaves the front
   // desk looking at a stale form.
@@ -211,7 +213,18 @@ export function usePatientPresence(sessionId: string) {
       return ch
     }
 
-    join()
+    // Wait for the previous channel to be gone before joining the same topic.
+    //
+    // This effect re-runs whenever the session id changes, which is what
+    // "start another form" does. Joining immediately meant two channels on one
+    // topic over one socket while the first was still unsubscribing, and the
+    // server answers a duplicate join by tearing the topic down. The tab then
+    // held a channel that reported SUBSCRIBED and delivered nothing: the
+    // patient saw "connected", and the front desk never saw them at all.
+    //
+    // Caught by listening to the room directly — after "start another", three
+    // keystrokes produced no broadcast and no presence entry.
+    void teardown.current.then(join, join)
 
     // A tab that is closed outright runs no cleanup at all, so the server has
     // to notice the socket died — which is slow. pagehide fires early enough to
@@ -232,9 +245,13 @@ export function usePatientPresence(sessionId: string) {
       // untrack() before unsubscribing: it pushes a presence diff immediately,
       // so staff sees the patient leave within a beat. removeChannel alone only
       // unsubscribes this client and leaves the server to work it out.
-      void ch.untrack().finally(() => {
-        void active.removeChannel(ch)
-      })
+      //
+      // Held on a ref so the *next* run of this effect can wait for it. Never
+      // rejects, or a failed teardown would strand every later join.
+      teardown.current = ch
+        .untrack()
+        .then(() => active.removeChannel(ch))
+        .catch(() => undefined)
     }
   }, [sessionId])
 
