@@ -7,6 +7,7 @@ import { LanguageToggle } from '@/components/LanguageToggle'
 import { PageTransition } from '@/components/PageTransition'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import { Logo } from '@/components/Logo'
+import { CanvasTint } from '@/components/CanvasTint'
 import { DEFAULT_LOCALE, LOCALES, getDictionary, isLocale } from '@/i18n'
 import '../globals.css'
 
@@ -87,6 +88,8 @@ export default async function LocaleLayout({
             style={{ ["--drift-duration" as string]: "6.5s" }}
           />
         </div>
+
+        <CanvasTint />
 
         <header className="enter enter-header fixed inset-x-0 top-0 z-50 bg-white/35 backdrop-blur-2xl backdrop-saturate-150">
           {/* Out of the flow, so a full-screen background runs underneath it.
