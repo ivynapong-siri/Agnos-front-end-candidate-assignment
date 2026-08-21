@@ -81,65 +81,64 @@ export function StaffBoard({ dict, locale }: { dict: Dictionary; locale: Locale 
             </p>
           </div>
           <StaffIdentity dict={dict} locale={locale} />
-          <LiveIndicator connection={connection} dict={dict} />
-          <GlassButton
-            tone="secondary"
-            size="sm"
-            type="button"
-            onClick={exportVisible}
-            disabled={visible.length === 0}
-            title={visible.length === 0 ? dict.staff.export.nothing : undefined}
-            className="focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-          >
-            {dict.staff.export.button}
-          </GlassButton>
-          <GlassButton
-            size="sm"
-            href={`/${locale}/patient`}
-            external
-            // target=_blank with rel=noreferrer gives the new tab a clean
-            // sessionStorage, so the remembered room would be lost. Rewriting
-            // the href on the way out carries it, without needing
-            // useSearchParams (which cannot be prerendered).
-            onClick={(event: React.MouseEvent<HTMLAnchorElement>) => {
-              event.currentTarget.href = `/${locale}/patient${window.location.search}`
-            }}
-            target="_blank"
-            rel="noreferrer"
-            className="focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-          >
-            {dict.staff.openForm}
-          </GlassButton>
         </div>
 
-        {/* Counters double as filters — one control instead of a legend plus a dropdown. */}
-        {counts.length > 0 && (
-          <div className="mt-3 flex flex-wrap gap-2">
+        {/*
+          Second row: what the board is showing on the left, what you can do
+          about it on the right. Splitting them off the title line gives the
+          heading room to breathe and puts the two controls beside the filters
+          they act on — the export sends exactly what the filters have left.
+
+          It renders whether or not there are filters to show, so the connection
+          state and the export do not appear and disappear with the first
+          patient.
+        */}
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+            {counts.length > 0 && (
+              <>
+                {/* Counters double as filters — one control instead of a legend
+                    plus a dropdown. */}
+                <GlassButton
+                  tone={filter === 'all' ? 'primary' : 'ghost'}
+                  size="sm"
+                  type="button"
+                  onClick={() => setFilter('all')}
+                  className="text-xs focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+                >
+                  {dict.staff.all} {decorated.length}
+                </GlassButton>
+                {counts.map(({ status, count }) => (
+                  <GlassButton
+                    key={status}
+                    tone={filter === status ? 'primary' : 'ghost'}
+                    size="sm"
+                    type="button"
+                    onClick={() => setFilter(status)}
+                    title={statusTitle(dict, status)}
+                    className="text-xs focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+                  >
+                    <span className={`h-2 w-2 shrink-0 rounded-full ${STATUS_STYLE[status].dot}`} />
+                    {dict.status[status].short} {count}
+                  </GlassButton>
+                ))}
+              </>
+            )}
+
+          <div className="ml-auto flex flex-wrap items-center gap-2">
+            <LiveIndicator connection={connection} dict={dict} />
             <GlassButton
-              tone={filter === 'all' ? 'primary' : 'ghost'}
+              tone="secondary"
               size="sm"
               type="button"
-              onClick={() => setFilter('all')}
-              className="text-xs focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+              onClick={exportVisible}
+              disabled={visible.length === 0}
+              title={visible.length === 0 ? dict.staff.export.nothing : undefined}
+              className="focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
             >
-              {dict.staff.all} {decorated.length}
+              {dict.staff.export.button}
             </GlassButton>
-            {counts.map(({ status, count }) => (
-              <GlassButton
-                key={status}
-                tone={filter === status ? 'primary' : 'ghost'}
-                size="sm"
-                type="button"
-                onClick={() => setFilter(status)}
-                title={statusTitle(dict, status)}
-                className="text-xs focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-              >
-                <span className={`h-2 w-2 shrink-0 rounded-full ${STATUS_STYLE[status].dot}`} />
-                {dict.status[status].short} {count}
-              </GlassButton>
-            ))}
           </div>
-        )}
+        </div>
       </div>
 
       {identified.length === 0 ? (

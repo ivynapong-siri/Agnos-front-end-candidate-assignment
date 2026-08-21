@@ -187,7 +187,6 @@ const th: Dictionary = {
     none: 'ยังไม่มีผู้ป่วย',
     count_one: 'ผู้ป่วย 1 คนในรอบนี้',
     count_other: 'ผู้ป่วย {count} คนในรอบนี้',
-    openForm: 'เปิดฟอร์มผู้ป่วย ↗',
     all: 'ทั้งหมด',
     details: 'ข้อมูลที่กรอก',
     notAnswered: 'ยังไม่ได้ตอบ',

@@ -192,7 +192,6 @@ const en = {
     none: 'No patients yet',
     count_one: '1 patient this session',
     count_other: '{count} patients this session',
-    openForm: 'Open a patient form ↗',
     all: 'All',
     details: 'Submitted details',
     notAnswered: 'Not answered yet',
