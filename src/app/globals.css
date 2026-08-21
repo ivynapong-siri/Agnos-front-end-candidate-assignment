@@ -64,6 +64,13 @@
   html {
     -webkit-text-size-adjust: 100%;
     scroll-behavior: smooth;
+    /*
+      Reserve the scrollbar's width whether or not the page needs one. Without
+      it a short page is 15px wider than a long one, every `mx-auto` container
+      centres against a different width, and the logo lands on 104 on the
+      landing page and 97 on the form — a visible twitch on every navigation.
+    */
+    scrollbar-gutter: stable;
   }
 
   body {
@@ -424,6 +431,21 @@
 .contact-panel:popover-open .contact-channel {
   opacity: 1;
   transform: none;
+}
+
+/*
+  The page shell: one container, shared by the header and every page body.
+  The site logo sits on its left edge, so anything using it lines up with the
+  logo on every route — which is the whole point. Pages had been picking their
+  own max-width (3xl on the form, 4xl on the board, a centred column on the auth
+  screens), so the content's left edge moved by up to 256px from one page to the
+  next while the logo stayed put.
+
+  A class rather than a repeated string of utilities, because "these must stay
+  identical" is exactly the thing a copied class list stops guaranteeing.
+*/
+.page-shell {
+  @apply mx-auto w-full max-w-7xl px-4 sm:px-6;
 }
 
 /* ------------------------------------------------------------------ *

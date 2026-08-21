@@ -35,11 +35,14 @@ export function AuthShell({
   ]
 
   return (
-    // -mt cancels the spacer the fixed header leaves, so the artwork runs to the
-    // edge of the viewport the way it does on the landing page.
-    <main className="-mt-16 flex min-h-svh flex-col pt-16 sm:-mt-20 sm:pt-20 lg:flex-row">
-      <section className="flex flex-1 items-center justify-center px-4 py-10 sm:px-6">
-        <div className="w-full max-w-md">
+    // -mt cancels the spacer the fixed header leaves, so the two columns sit
+    // against the top of the viewport rather than below a reserved strip.
+    <main className="-mt-16 pt-16 sm:-mt-20 sm:pt-20">
+      {/* The same shell as the header and every other page, so the form starts
+          on the logo's line. Centring this column inside the viewport put it
+          39px off the header — small, but it moved on every navigation. */}
+      <div className="page-shell grid items-center gap-10 py-10 lg:min-h-[calc(100svh-5rem)] lg:grid-cols-2 lg:gap-16">
+        <section className="w-full max-w-md">
           <p
             className="enter enter-eyebrow text-xs font-bold uppercase tracking-[0.18em] text-brand"
           >
@@ -73,10 +76,9 @@ export function AuthShell({
               {dict.nav.home}
             </Link>
           </p>
-        </div>
-      </section>
+        </section>
 
-      {/*
+        {/*
         Hidden below lg for the same reason as the landing hero: the art is a
         2.4:1 banner and on a narrow screen it crops to an empty white field.
 
@@ -88,8 +90,8 @@ export function AuthShell({
         form is, and object-right picks the half the artwork actually lives in,
         the same choice the landing page makes.
       */}
-      <section className="relative hidden flex-1 p-4 lg:sticky lg:top-20 lg:block lg:h-[calc(100svh-5rem)]">
-        <div className="relative h-full overflow-hidden rounded-3xl">
+        <section className="relative hidden lg:block lg:h-[calc(100svh-9rem)]">
+          <div className="relative h-full overflow-hidden rounded-3xl">
           <Image
             src="/hero-folder.jpg"
             alt=""
@@ -102,20 +104,21 @@ export function AuthShell({
 
           {/* Capped: at the full column width these ran to 624px, which is a
               long line for two lines of small type. */}
-          <div className="absolute inset-x-0 bottom-0 flex flex-col gap-3 p-6">
-            {points.map((point, index) => (
-              <div
-                key={point.title}
-                className="glass-card enter max-w-xs p-4"
-                style={{ ['--enter-delay' as string]: `${700 + index * 120}ms` }}
-              >
-                <p className="text-sm font-bold text-navy-900">{point.title}</p>
-                <p className="mt-1 text-xs text-ink/80">{point.body}</p>
-              </div>
-            ))}
+            <div className="absolute inset-x-0 bottom-0 flex flex-col gap-3 p-6">
+              {points.map((point, index) => (
+                <div
+                  key={point.title}
+                  className="glass-card enter max-w-xs p-4"
+                  style={{ ['--enter-delay' as string]: `${700 + index * 120}ms` }}
+                >
+                  <p className="text-sm font-bold text-navy-900">{point.title}</p>
+                  <p className="mt-1 text-xs text-ink/80">{point.body}</p>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </div>
     </main>
   )
 }

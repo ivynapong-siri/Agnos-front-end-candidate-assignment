@@ -93,7 +93,7 @@ export default async function LocaleLayout({
               No band — just a veil and a blur. 35% is the floor at which the
               navy labels still clear 4.5:1 over the worst thing that can pass
               beneath: the blue submit button. */}
-          <div className="mx-auto flex h-16 w-full max-w-7xl flex-nowrap items-center gap-3 px-4 sm:h-20 sm:px-6">
+          <div className="page-shell flex h-16 flex-nowrap items-center gap-3 sm:h-20">
           <Link
             href={`/${locale}`}
             aria-label={dict.nav.home}

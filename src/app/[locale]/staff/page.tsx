@@ -19,7 +19,7 @@ export default async function StaffPage({ params }: { params: Promise<{ locale: 
   const dict = getDictionary(locale)
 
   return (
-    <main className="mx-auto w-full max-w-4xl px-4 pb-20 pt-6 sm:px-6 sm:pt-10">
+    <main className="page-shell pb-20 pt-6 sm:pt-10">
       <RequireStaff locale={locale} dict={dict}>
         <StaffBoard dict={dict} locale={locale} />
       </RequireStaff>
